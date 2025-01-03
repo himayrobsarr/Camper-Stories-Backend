@@ -15,16 +15,25 @@ const CamperController = {
     // Obtener un camper por ID
     getById: async (req, res) => {
         const { id } = req.params;
+        const userIdFromToken = req.user.id; // Obtiene el user_id del token
         try {
             const result = await CamperModel.getCamperById(id);
             if (!result.data.length) {
                 return res.status(404).json({ message: "Camper no encontrado" });
             }
-            res.status(200).json(result.data[0]);
+            const camper = result.data[0];
+            
+            // Verifica que el camper corresponde al usuario autenticado
+            if (camper.user_id !== userIdFromToken) {
+                return res.status(403).json({ message: 'No tienes permiso para ver este perfil' });
+            }
+            
+            res.status(200).json(camper);
         } catch (error) {
             res.status(500).json({ message: "Error al obtener el camper", error });
         }
     },
+    
 
     // Crear un nuevo camper
     create: async (req, res) => {
