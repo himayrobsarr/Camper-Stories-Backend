@@ -292,7 +292,27 @@
 **Code** : `200 OK`
 
 ```javascript
+  {
+  "user_id": 3,
+  "title": "Nuevo Camper",
+  "description": "Descripción del camper",
+  "about": "Información adicional sobre el camper",
+  "image": "https://example.com/imagen.jpg",
+  "main_video_url": "https://example.com/video.mp4",
+  "document_number_id": 5,
+  "full_name": "Nombre Completo",
+  "age": 25,
+  "city_id": 2,
+  "profile_picture": "https://example.com/foto_perfil.jpg"
+}
 
+```
+
+``` javascript
+  {
+    "message": "Camper creado",
+    "id": 7
+  }
 ```
 
 ## Actualizar un Camper
@@ -306,7 +326,15 @@
 **Code** : `200 OK`
 
 ```javascript
+  {
+    "title": "Nuevo Camper"
+  }
+```
 
+```javascript
+  {
+    "message": "Camper actualizado"
+  }
 ```
 
 ## Eliminar un Sponsor
