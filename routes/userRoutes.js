@@ -13,7 +13,6 @@ router.post('/', UserController.create); // Ruta alternativa para registro
 router.post('/logout', UserController.logout); // Ruta para cerrar sesión
 
 // Rutas protegidas con authMiddleware
-router.get("/", authMiddleware, UserController.getAll);
 router.get("/:id", authMiddleware, UserController.getById);
 router.put("/:id", authMiddleware, UserController.update);
 router.delete("/:id", authMiddleware, UserController.delete);
