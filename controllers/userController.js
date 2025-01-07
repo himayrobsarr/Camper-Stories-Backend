@@ -1,126 +1,139 @@
+// controllers/user.controller.js
 const jwt = require('jsonwebtoken');
-const UserModel = require("../models/userModel");
+const UserModel = require('../models/userModel');
+const conexion = require('../helpers/conexion');
 
-const UserController = {
-    getAll: async (req, res) => {
+class UserController {
+    static async create(req, res) {
         try {
-            const users = await UserModel.getAllUsers(req.user.id, req.user.role);
-            res.json(users);
-        } catch (error) {
-            res.status(400).json({ error: error.message });
-        }
-    },
+            // Validar campos requeridos
+            const requiredFields = ['first_name', 'last_name', 'email', 'password', 'birth_date', 'document_number', 'city'];
+            for (const field of requiredFields) {
+                if (!req.body[field]) {
+                    return res.status(400).json({ message: `El campo ${field} es requerido` });
+                }
+            }
 
-    getById: async (req, res) => {
-        try {
-            const result = await UserModel.getUserById(req.params.id);
-            if (!result.data.length) {
-                return res.status(404).json({ message: "Usuario no encontrado" });
+            // Validar formato de fecha
+            if (!Date.parse(req.body.birth_date)) {
+                return res.status(400).json({ message: 'Formato de fecha inválido. Use YYYY-MM-DD' });
             }
-            res.status(200).json(result.data[0]);
-        } catch (error) {
-            if (error.message === 'ID es requerido') {
-                return res.status(400).json({ message: error.message });
-            }
-            res.status(500).json({ message: "Error al obtener el usuario", error: error.message });
-        }
-    },
 
-    create: async (req, res) => {
-        const { first_name, last_name, email, password, role, document_number } = req.body;
-    
-        // Validación de datos
-        if (!first_name || !last_name || !email || !password || !role) {
-            return res.status(400).json({
-                message: "Todos los campos son obligatorios (first_name, last_name, email, password, role)."
-            });
-        }
-    
-        try {
-            // Crear el usuario
-            const result = await UserModel.createUser({ first_name, last_name, email, password, role });
-            const userId = result.data.insertId; // Obtener el ID del usuario recién creado
-    
-            // Si el rol es 'camper', actualizar el CAMPER con datos adicionales
-            if (role === 'camper') {
-                await CamperModel.updateCamperByUserId(userId, { document_number });
-            }
-    
-            res.status(201).json({ message: "Usuario creado con éxito", id: userId });
-        } catch (error) {
-            if (error.message === 'Email y password son requeridos' || error.message === 'El email ya está registrado') {
-                return res.status(400).json({ message: error.message });
-            }
-            res.status(500).json({ message: "Error al crear el usuario", error: error.message });
-        }
-    },
-    
-    update: async (req, res) => {
-        try {
-            const result = await UserModel.updateUser(
-                req.params.id, 
-                req.body, 
-                req.user.id,  // ID del usuario que hace la petición
-                req.user.role // Rol del usuario que hace la petición
-            );
-            res.json(result);
-        } catch (error) {
-            res.status(400).json({ error: error.message });
-        }
-    },
-
-    delete: async (req, res) => {
-        try {
-            const userId = req.params.id;
-            const requestingUserId = req.user.id;
-            const userRole = req.user.role;
-    
-            await UserModel.deleteUser(userId, requestingUserId, userRole);
-            res.status(200).json({ message: "Usuario eliminado" });
-        } catch (error) {
-            if (error.message === 'ID es requerido') {
-                return res.status(400).json({ message: error.message });
-            }
-            res.status(500).json({ message: "Error al eliminar el usuario", error: error.message });
-        }
-    },    
-
-    login: async (req, res) => {
-        try {
-            const { email, password } = req.body;
+            // Crear usuario con todas sus relaciones
+            console.log(res.body);
             
-            if (!email || !password) {
-                return res.status(400).json({ message: 'Email y password son requeridos' });
-            }
+            const user = await UserModel.createWithRelations(req.body);
 
-            const user = await UserModel.login(email, password);
-            
+
             // Generar token
             const token = jwt.sign(
-                { id: user.id, email: user.email },
+                { 
+                    id: user.id, 
+                    email: user.email, 
+                    role: 'camper' 
+                },
                 process.env.JWT_SECRET,
                 { expiresIn: '24h' }
             );
 
-            res.json({
-                message: 'Login exitoso',
+            res.status(201).json({ token, user });
+        } catch (error) {
+            console.error('Error en create:', error);
+            res.status(400).json({ 
+                message: 'Error al crear el usuario',
+                error: error.message 
+            });
+        }
+    }
+
+    static async login(req, res) {
+        try {
+            const { email, password } = req.body;
+            
+            // Buscar usuario por email
+            const user = await UserModel.findByEmail(email);
+            
+            if (!user) {
+                return res.status(401).json({ message: 'Credenciales inválidas' });
+            }
+
+            // Validar contraseña
+            const isValidPassword = await UserModel.validatePassword(user, password);
+            if (!isValidPassword) {
+                return res.status(401).json({ message: 'Credenciales inválidas' });
+            }
+
+            // Generar token
+            const token = jwt.sign(
+                { 
+                    id: user.id, 
+                    email: user.email, 
+                    role: user.role 
+                },
+                process.env.JWT_SECRET,
+                { expiresIn: '24h' }
+            );
+
+            // Eliminar la contraseña del objeto usuario antes de enviarlo
+            delete user.password;
+
+            res.json({ 
                 token,
-                user: {
-                    id: user.id,
-                    email: user.email,
-                    name: user.name
-                }
+                user
             });
         } catch (error) {
-            res.status(401).json({ message: error.message });
+            console.error('Error en login:', error);
+            res.status(500).json({ message: 'Error en el servidor' });
         }
-    },
-
-    logout: (req, res) => {
-        // Aquí puedes manejar la lógica de cierre de sesión si es necesario
-        // Por ejemplo, puedes eliminar el token del lado del cliente
-        res.json({ message: "Sesión cerrada exitosamente" });
     }
-};
+
+    static async logout(req, res) {
+        res.json({ message: 'Sesión cerrada exitosamente' });
+    }
+
+    static async getAll(req, res) {
+        try {
+            const users = await UserModel.findAll();
+            res.json(users);
+        } catch (error) {
+            console.error('Error en getAll:', error);
+            res.status(500).json({ message: 'Error al obtener usuarios' });
+        }
+    }
+
+    static async getById(req, res) {
+        try {
+            const user = await UserModel.findById(req.params.id);
+            if (!user) {
+                return res.status(404).json({ message: 'Usuario no encontrado' });
+            }
+            res.json(user);
+        } catch (error) {
+            console.error('Error en getById:', error);
+            res.status(500).json({ message: 'Error al obtener el usuario' });
+        }
+    }
+
+    static async update(req, res) {
+        try {
+            // Implementar actualización si es necesario
+            res.status(501).json({ message: 'Función no implementada' });
+        } catch (error) {
+            console.error('Error en update:', error);
+            res.status(400).json({ message: 'Error al actualizar el usuario' });
+        }
+    }
+
+    static async delete(req, res) {
+        try {
+            const query = 'DELETE FROM USER WHERE id = ?';
+            await conexion.query(query, [req.params.id]);
+            res.json({ message: 'Usuario eliminado exitosamente' });
+        } catch (error) {
+            console.error('Error en delete:', error);
+            res.status(500).json({ message: 'Error al eliminar el usuario' });
+        }
+    }
+}
 
 module.exports = UserController;

@@ -1,85 +1,188 @@
-const db = require("../helpers/conexion");
-const bcrypt = require('bcryptjs');
+// models/user.model.js
+const bcrypt = require('bcrypt');
+const conexion = require('../helpers/conexion');
 
 class UserModel {
-    static async login(email, password) {
+
+    static async createDocument(documentNumber, documentTypeId = 1) {
+        console.log('createDocument:', { documentNumber, documentTypeId });
+        const query = 'INSERT INTO DOCUMENT_NUMBER (document_number, document_type_id) VALUES (?, ?)';
+        const result = await conexion.query(query, [documentNumber, documentTypeId]);
+        return result.data.insertId;
+    }
+
+    static async getExistingDocument(documentNumber, documentTypeId = 1) {
+        console.log('getExistingDocument:', { documentNumber, documentTypeId });
+        const query = 'SELECT id FROM DOCUMENT_NUMBER WHERE document_number = ? AND document_type_id = ?';
+        const result = await conexion.query(query, [documentNumber, documentTypeId]);
+        return result.data[0]?.id;
+    }
+
+
+
+    static async findOrCreateDocument(documentNumber, documentTypeId = 1) {
+        console.log('findOrCreateDocument:', { documentNumber, documentTypeId });
         try {
-            const query = 'SELECT * FROM USER WHERE email = ?';
-            const result = await db.query(query, [email]);
+            let documentId = await this.getExistingDocument(documentNumber, documentTypeId);
             
-            if (!result.data.length) {
-                throw new Error('Usuario no encontrado');
+            if (!documentId) {
+                documentId = await this.createDocument(documentNumber, documentTypeId);
+            }
+            
+            return documentId;
+        } catch (error) {
+            throw new Error(`Error con el documento: ${error.message}`);
+        }
+    }
+
+    static async findOrCreateCity(cityName) {
+        console.log('findOrCreateCity:', { cityName });
+        try {
+            let query = 'SELECT id FROM CITY WHERE name = ?';
+            let result = await conexion.query(query, [cityName]);
+            
+            if (result.data[0]) {
+                return result.data[0].id;
             }
 
-            const user = result.data[0];
-            const isValidPassword = await bcrypt.compare(password, user.password);
-            
-            if (!isValidPassword) {
-                throw new Error('Contraseña incorrecta');
-            }
+            query = 'INSERT INTO CITY (name) VALUES (?)';
+            result = await conexion.query(query, [cityName]);
+            return result.data.insertId;
+        } catch (error) {
+            throw new Error(`Error con la ciudad: ${error.message}`);
+        }
+    }
 
-            return user;
+    static async checkExistingEmail(email) {
+        console.log('checkExistingEmail:', { email });
+        const query = 'SELECT id FROM USER WHERE email = ?';
+        const result = await conexion.query(query, [email]);
+        if (result.data[0]) {
+            throw new Error('El email ya está registrado');
+        }
+    }
+
+    static async createWithRelations(userData) {
+        console.log('createWithRelations:', userData);
+        try {
+            // 1. Verificar email duplicado
+            await this.checkExistingEmail(userData.email);
+
+            // 2. Crear registro en AGE
+            const ageQuery = 'INSERT INTO AGE (birth_date) VALUES (?)';
+            const ageResult = await conexion.query(ageQuery, [userData.birth_date]);
+            const ageId = ageResult.data.insertId;
+
+            // 3. Obtener o crear DOCUMENT_NUMBER
+            const documentNumberId = await this.findOrCreateDocument(userData.document_number);
+          console.log(documentNumberId + "HOLI")
+            // 4. Obtener o crear CITY
+            const cityId = await this.findOrCreateCity(userData.city);
+
+            // 5. Encriptar contraseña
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash(userData.password, salt);
+
+            // 6. Crear usuario
+            const userQuery = `
+                INSERT INTO USER 
+                (first_name, last_name, email, password, 
+                city_id, age_id, role)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            `;
+
+            const userParams = [
+                userData.first_name,
+                userData.last_name,
+                userData.email,
+                hashedPassword,
+                cityId,
+                ageId,
+                'camper'
+            ];
+
+            const userResult = await conexion.query(userQuery, userParams);
+
+            // 7. Retornar usuario creado
+            return {
+                id: userResult.data.insertId,
+                ...userData,
+                password: undefined,
+                role: 'camper'
+            };
         } catch (error) {
             throw error;
         }
     }
 
-    static async getAllUsers(requestingUserId, userRole) {
-        if (userRole !== 'admin') {
-            const query = "SELECT id, first_name, last_name, email, role FROM USER WHERE id = ?";
-            return await db.query(query, [requestingUserId]);
+    static async findByEmail(email) {
+        console.log('findByEmail:', { email });
+        try {
+            const query = `
+                SELECT U.*, 
+                       A.birth_date,
+                       DN.document_number,
+                       C.name as city_name
+                FROM USER U 
+                LEFT JOIN AGE A ON U.age_id = A.id
+                LEFT JOIN DOCUMENT_NUMBER DN ON U.document_number_id = DN.id
+                LEFT JOIN CITY C ON U.city_id = C.id
+                WHERE U.email = ?
+            `;
+            const result = await conexion.query(query, [email]);
+            return result.data[0];
+        } catch (error) {
+            throw error;
         }
-        const query = "SELECT id, first_name, last_name, email, role FROM USER";
-        return await db.query(query);
     }
 
-    static async getUserById(id, requestingUserId, userRole) {
-        if (userRole !== 'admin' && requestingUserId !== id) {
-            throw new Error('No tienes permiso para ver esta información');
+    static async findById(id) {
+        console.log('findById:', { id });
+        try {
+            const query = `
+                SELECT U.*,
+                       A.birth_date,
+                       DN.document_number,
+                       C.name as city_name
+                FROM USER U
+                LEFT JOIN AGE A ON U.age_id = A.id
+                LEFT JOIN DOCUMENT_NUMBER DN ON U.document_number_id = DN.id
+                LEFT JOIN CITY C ON U.city_id = C.id
+                WHERE U.id = ?
+            `;
+            const result = await conexion.query(query, [id]);
+            if (result.data[0]) {
+                delete result.data[0].password;
+            }
+            return result.data[0];
+        } catch (error) {
+            throw error;
         }
-        const query = "SELECT id, first_name, last_name, email, role FROM USER WHERE id = ?";
-        return await db.query(query, [id]);
     }
 
-    static async createUser({ first_name, last_name, email, password, role }) {
-        if (!['admin', 'camper'].includes(role)) {
-            throw new Error("El rol debe ser 'admin' o 'camper'");
+    static async findAll() {
+        console.log('findAll');
+        try {
+            const query = `
+                SELECT U.id, U.first_name, U.last_name, U.email, U.role,
+                       A.birth_date,
+                       DN.document_number,
+                       C.name as city_name
+                FROM USER U
+                LEFT JOIN AGE A ON U.age_id = A.id
+                LEFT JOIN DOCUMENT_NUMBER DN ON U.document_number_id = DN.id
+                LEFT JOIN CITY C ON U.city_id = C.id
+            `;
+            const result = await conexion.query(query);
+            return result.data;
+        } catch (error) {
+            throw error;
         }
-
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const query = `
-            INSERT INTO USER (first_name, last_name, email, password, role)
-            VALUES (?, ?, ?, ?, ?)
-        `;
-        return await db.query(query, [
-            first_name,
-            last_name,
-            email.toLowerCase(),
-            hashedPassword,
-            role
-        ]);
     }
 
-    static async updateUser(id, userData, requestingUserId, userRole) {
-        if (userRole !== 'admin' && requestingUserId !== id) {
-            throw new Error('No tienes permiso para modificar este usuario');
-        }
-
-        if (userRole !== 'admin' && userData.role) {
-            throw new Error('No tienes permiso para cambiar el rol');
-        }
-
-        const query = "UPDATE USER SET ? WHERE id = ?";
-        return await db.query(query, [userData, id]);
-    }
-
-    static async deleteUser(id, requestingUserId, userRole) {
-        if (userRole !== 'admin') {
-            throw new Error('Solo los administradores pueden eliminar usuarios');
-        }
-        
-        const query = "DELETE FROM USER WHERE id = ?";
-        return await db.query(query, [id]);
+    static async validatePassword(user, password) {
+        console.log('validatePassword:', { userId: user.id });
+        return await bcrypt.compare(password, user.password);
     }
 }
 
