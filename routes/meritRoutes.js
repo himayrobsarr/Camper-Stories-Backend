@@ -1,16 +1,16 @@
-const express = require('express');
-const router = express.Router();
-const authMiddleware = require('../middlewares/authMiddleware');
-const CamperMeritController = require('../controllers/meritController');
+const express = require("express");
+const MeritController = require("../controllers/meritController");
+const authMiddleware = require("../middlewares/authMiddleware");
 const limit = require('../limit/meritLimit');
 
-// Obtener todos los méritos de un camper
-router.get('/:camperId', limit.getMeritsByCamperLimiter, CamperMeritController.get);
+const router = express.Router();
 
-// Asignar un mérito a un camper
-router.post('/', limit.assignMeritToCamperLimiter, CamperMeritController.assignMerit);
+// Rutas públicas
+router.get("/", limit.getMeritsByCamperLimiter, MeritController.getAll); // Obtener todos los méritos
 
-// Actualizar un mérito asignado a un camper
-router.put('/:camperId', limit.updateMeritForCamperLimiter, CamperMeritController.updateMerit);
+// Rutas protegidas
+router.get("/:userId", authMiddleware, limit.getMeritsByCamperLimiter, MeritController.getByUserId); // Obtener méritos por usuario
+router.post("/", authMiddleware, limit.assignMeritToCamperLimiter, MeritController.assignMerit); // Asignar un mérito
+router.put("/", authMiddleware, limit.updateMeritForCamperLimiter, MeritController.updateMerit); // Actualizar mérito asignado
 
 module.exports = router;
