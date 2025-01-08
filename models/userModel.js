@@ -1,85 +1,184 @@
-const db = require("../helpers/conexion");
-const bcrypt = require('bcryptjs');
+// models/userModel.js
+const bcrypt = require('bcrypt');
+const conexion = require('../helpers/conexion');
 
 class UserModel {
-    static async login(email, password) {
+    static async checkDocumentType(typeId = 1) {
+        const query = 'SELECT id FROM DOCUMENT_TYPE WHERE id = ?';
+        const result = await conexion.query(query, [typeId]);
+        if (!result.data[0]) {
+            throw new Error('Tipo de documento no encontrado');
+        }
+        return result.data[0].id;
+    }
+
+    static async createWithRelations(userData) {
         try {
-            const query = 'SELECT * FROM USER WHERE email = ?';
-            const result = await db.query(query, [email]);
+            // 1. Verificar email duplicado
+            await this.checkExistingEmail(userData.email);
+
+            // 2. Verificar que existe el tipo de documento
+            await this.checkDocumentType(1); // Usamos el tipo por defecto (1)
+
+            // 3. Obtener o crear CITY
+            let cityId;
+            const cityQuery = 'SELECT id FROM CITY WHERE name = ?';
+            const cityResult = await conexion.query(cityQuery, [userData.city]);
             
-            if (!result.data.length) {
-                throw new Error('Usuario no encontrado');
+            if (cityResult.data.length > 0) {
+                cityId = cityResult.data[0].id;
+            } else {
+                const newCityQuery = 'INSERT INTO CITY (name) VALUES (?)';
+                const newCityResult = await conexion.query(newCityQuery, [userData.city]);
+                cityId = newCityResult.data.insertId;
             }
 
-            const user = result.data[0];
-            const isValidPassword = await bcrypt.compare(password, user.password);
-            
-            if (!isValidPassword) {
-                throw new Error('Contraseña incorrecta');
-            }
+            // 4. Encriptar contraseña
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash(userData.password, salt);
 
-            return user;
+            // 5. Crear usuario
+            const userQuery = `
+                INSERT INTO USER (
+                    first_name, last_name, email, password,
+                    role, document_type_id, document_number,
+                    city_id, birth_date, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+            `;
+
+            const userParams = [
+                userData.first_name,
+                userData.last_name,
+                userData.email,
+                hashedPassword,
+                'camper',
+                1, // document_type_id por defecto
+                userData.document_number,
+                cityId,
+                userData.birth_date
+            ];
+
+            const userResult = await conexion.query(userQuery, userParams);
+            const userId = userResult.data.insertId;
+
+            // 6. Retornar usuario creado
+            return {
+                id: userId,
+                ...userData,
+                password: undefined,
+                role: 'camper'
+            };
+        } catch (error) {
+            console.error('Error en createWithRelations:', error);
+            throw error;
+        }
+    }
+    static async findByEmail(email) {
+        try {
+            const query = `
+                SELECT u.*, c.name as city_name
+                FROM USER u
+                LEFT JOIN CITY c ON u.city_id = c.id
+                WHERE u.email = ?
+            `;
+            const result = await conexion.query(query, [email]);
+            return result.data[0];
         } catch (error) {
             throw error;
         }
     }
 
-    static async getAllUsers(requestingUserId, userRole) {
-        if (userRole !== 'admin') {
-            const query = "SELECT id, first_name, last_name, email, role FROM USER WHERE id = ?";
-            return await db.query(query, [requestingUserId]);
+    static async findById(id) {
+        try {
+            const query = `
+                SELECT u.*, c.name as city_name
+                FROM USER u
+                LEFT JOIN CITY c ON u.city_id = c.id
+                WHERE u.id = ?
+            `;
+            const result = await conexion.query(query, [id]);
+            if (result.data[0]) {
+                delete result.data[0].password;
+            }
+            return result.data[0];
+        } catch (error) {
+            throw error;
         }
-        const query = "SELECT id, first_name, last_name, email, role FROM USER";
-        return await db.query(query);
     }
 
-    static async getUserById(id, requestingUserId, userRole) {
-        if (userRole !== 'admin' && requestingUserId !== id) {
-            throw new Error('No tienes permiso para ver esta información');
+    static async findAll() {
+        try {
+            const query = `
+                SELECT u.id, u.first_name, u.last_name, u.email, u.role,
+                       u.document_number, u.birth_date,
+                       c.name as city_name
+                FROM USER u
+                LEFT JOIN CITY c ON u.city_id = c.id
+            `;
+            const result = await conexion.query(query);
+            return result.data;
+        } catch (error) {
+            throw error;
         }
-        const query = "SELECT id, first_name, last_name, email, role FROM USER WHERE id = ?";
-        return await db.query(query, [id]);
     }
 
-    static async createUser({ first_name, last_name, email, password, role }) {
-        if (!['admin', 'camper'].includes(role)) {
-            throw new Error("El rol debe ser 'admin' o 'camper'");
+    static async checkExistingEmail(email) {
+        const query = 'SELECT id FROM USER WHERE email = ?';
+        const result = await conexion.query(query, [email]);
+        if (result.data[0]) {
+            throw new Error('El email ya está registrado');
         }
-
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const query = `
-            INSERT INTO USER (first_name, last_name, email, password, role)
-            VALUES (?, ?, ?, ?, ?)
-        `;
-        return await db.query(query, [
-            first_name,
-            last_name,
-            email.toLowerCase(),
-            hashedPassword,
-            role
-        ]);
     }
 
-    static async updateUser(id, userData, requestingUserId, userRole) {
-        if (userRole !== 'admin' && requestingUserId !== id) {
-            throw new Error('No tienes permiso para modificar este usuario');
-        }
-
-        if (userRole !== 'admin' && userData.role) {
-            throw new Error('No tienes permiso para cambiar el rol');
-        }
-
-        const query = "UPDATE USER SET ? WHERE id = ?";
-        return await db.query(query, [userData, id]);
+    static async validatePassword(user, password) {
+        return await bcrypt.compare(password, user.password);
     }
 
-    static async deleteUser(id, requestingUserId, userRole) {
-        if (userRole !== 'admin') {
-            throw new Error('Solo los administradores pueden eliminar usuarios');
+    static async update(id, userData) {
+        try {
+            // Si se proporciona una nueva contraseña, encriptarla
+            if (userData.password) {
+                const salt = await bcrypt.genSalt(10);
+                userData.password = await bcrypt.hash(userData.password, salt);
+            }
+
+            // Si se proporciona una nueva ciudad, obtener o crear su ID
+            let cityId;
+            if (userData.city) {
+                const cityResult = await conexion.query('SELECT id FROM CITY WHERE name = ?', [userData.city]);
+                if (cityResult.data[0]) {
+                    cityId = cityResult.data[0].id;
+                } else {
+                    const newCityResult = await conexion.query('INSERT INTO CITY (name) VALUES (?)', [userData.city]);
+                    cityId = newCityResult.data.insertId;
+                }
+                userData.city_id = cityId;
+                delete userData.city;
+            }
+
+            // Construir la consulta de actualización
+            const updateFields = Object.keys(userData)
+                .filter(key => userData[key] !== undefined)
+                .map(key => `${key} = ?`);
+            
+            const query = `UPDATE USER SET ${updateFields.join(', ')} WHERE id = ?`;
+            const values = [...Object.values(userData).filter(value => value !== undefined), id];
+            
+            await conexion.query(query, values);
+            return await this.findById(id);
+        } catch (error) {
+            throw error;
         }
-        
-        const query = "DELETE FROM USER WHERE id = ?";
-        return await db.query(query, [id]);
+    }
+
+    static async delete(id) {
+        try {
+            const query = 'DELETE FROM USER WHERE id = ?';
+            await conexion.query(query, [id]);
+            return true;
+        } catch (error) {
+            throw error;
+        }
     }
 }
 
