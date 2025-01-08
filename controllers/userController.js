@@ -7,7 +7,7 @@ class UserController {
     static async create(req, res) {
         try {
             // Validar campos requeridos
-            const requiredFields = ['first_name', 'last_name', 'email', 'password', 'birth_date', 'document_number', 'city'];
+            const requiredFields = ['first_name', 'last_name', 'email', 'password', 'document_number', 'birth_date', 'city'];
             for (const field of requiredFields) {
                 if (!req.body[field]) {
                     return res.status(400).json({ message: `El campo ${field} es requerido` });
@@ -15,15 +15,13 @@ class UserController {
             }
 
             // Validar formato de fecha
-            if (!Date.parse(req.body.birth_date)) {
+            const birthDate = new Date(req.body.birth_date);
+            if (isNaN(birthDate.getTime())) {
                 return res.status(400).json({ message: 'Formato de fecha inválido. Use YYYY-MM-DD' });
             }
 
             // Crear usuario con todas sus relaciones
-            console.log(res.body);
-            
             const user = await UserModel.createWithRelations(req.body);
-
 
             // Generar token
             const token = jwt.sign(
@@ -74,12 +72,19 @@ class UserController {
                 { expiresIn: '24h' }
             );
 
-            // Eliminar la contraseña del objeto usuario antes de enviarlo
-            delete user.password;
+            // Eliminar datos sensibles antes de enviar la respuesta
+            const userData = {
+                id: user.id,
+                first_name: user.first_name,
+                last_name: user.last_name,
+                email: user.email,
+                role: user.role,
+                city: user.city_name
+            };
 
             res.json({ 
                 token,
-                user
+                user: userData
             });
         } catch (error) {
             console.error('Error en login:', error);

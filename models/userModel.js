@@ -1,94 +1,49 @@
-// models/user.model.js
+// models/userModel.js
 const bcrypt = require('bcrypt');
 const conexion = require('../helpers/conexion');
 
 class UserModel {
-
-    static async createDocument(documentNumber, documentTypeId = 1) {
-        console.log('createDocument:', { documentNumber, documentTypeId });
-        const query = 'INSERT INTO DOCUMENT_NUMBER (document_number, document_type_id) VALUES (?, ?)';
-        const result = await conexion.query(query, [documentNumber, documentTypeId]);
-        return result.data.insertId;
-    }
-
-    static async getExistingDocument(documentNumber, documentTypeId = 1) {
-        console.log('getExistingDocument:', { documentNumber, documentTypeId });
-        const query = 'SELECT id FROM DOCUMENT_NUMBER WHERE document_number = ? AND document_type_id = ?';
-        const result = await conexion.query(query, [documentNumber, documentTypeId]);
-        return result.data[0]?.id;
-    }
-
-
-
-    static async findOrCreateDocument(documentNumber, documentTypeId = 1) {
-        console.log('findOrCreateDocument:', { documentNumber, documentTypeId });
-        try {
-            let documentId = await this.getExistingDocument(documentNumber, documentTypeId);
-            
-            if (!documentId) {
-                documentId = await this.createDocument(documentNumber, documentTypeId);
-            }
-            
-            return documentId;
-        } catch (error) {
-            throw new Error(`Error con el documento: ${error.message}`);
+    static async checkDocumentType(typeId = 1) {
+        const query = 'SELECT id FROM DOCUMENT_TYPE WHERE id = ?';
+        const result = await conexion.query(query, [typeId]);
+        if (!result.data[0]) {
+            throw new Error('Tipo de documento no encontrado');
         }
-    }
-
-    static async findOrCreateCity(cityName) {
-        console.log('findOrCreateCity:', { cityName });
-        try {
-            let query = 'SELECT id FROM CITY WHERE name = ?';
-            let result = await conexion.query(query, [cityName]);
-            
-            if (result.data[0]) {
-                return result.data[0].id;
-            }
-
-            query = 'INSERT INTO CITY (name) VALUES (?)';
-            result = await conexion.query(query, [cityName]);
-            return result.data.insertId;
-        } catch (error) {
-            throw new Error(`Error con la ciudad: ${error.message}`);
-        }
-    }
-
-    static async checkExistingEmail(email) {
-        console.log('checkExistingEmail:', { email });
-        const query = 'SELECT id FROM USER WHERE email = ?';
-        const result = await conexion.query(query, [email]);
-        if (result.data[0]) {
-            throw new Error('El email ya está registrado');
-        }
+        return result.data[0].id;
     }
 
     static async createWithRelations(userData) {
-        console.log('createWithRelations:', userData);
         try {
             // 1. Verificar email duplicado
             await this.checkExistingEmail(userData.email);
 
-            // 2. Crear registro en AGE
-            const ageQuery = 'INSERT INTO AGE (birth_date) VALUES (?)';
-            const ageResult = await conexion.query(ageQuery, [userData.birth_date]);
-            const ageId = ageResult.data.insertId;
+            // 2. Verificar que existe el tipo de documento
+            await this.checkDocumentType(1); // Usamos el tipo por defecto (1)
 
-            // 3. Obtener o crear DOCUMENT_NUMBER
-            const documentNumberId = await this.findOrCreateDocument(userData.document_number);
-          console.log(documentNumberId + "HOLI")
-            // 4. Obtener o crear CITY
-            const cityId = await this.findOrCreateCity(userData.city);
+            // 3. Obtener o crear CITY
+            let cityId;
+            const cityQuery = 'SELECT id FROM CITY WHERE name = ?';
+            const cityResult = await conexion.query(cityQuery, [userData.city]);
+            
+            if (cityResult.data.length > 0) {
+                cityId = cityResult.data[0].id;
+            } else {
+                const newCityQuery = 'INSERT INTO CITY (name) VALUES (?)';
+                const newCityResult = await conexion.query(newCityQuery, [userData.city]);
+                cityId = newCityResult.data.insertId;
+            }
 
-            // 5. Encriptar contraseña
+            // 4. Encriptar contraseña
             const salt = await bcrypt.genSalt(10);
             const hashedPassword = await bcrypt.hash(userData.password, salt);
 
-            // 6. Crear usuario
+            // 5. Crear usuario
             const userQuery = `
-                INSERT INTO USER 
-                (first_name, last_name, email, password, 
-                city_id, age_id, role)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO USER (
+                    first_name, last_name, email, password,
+                    role, document_type_id, document_number,
+                    city_id, birth_date, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
             `;
 
             const userParams = [
@@ -96,38 +51,35 @@ class UserModel {
                 userData.last_name,
                 userData.email,
                 hashedPassword,
+                'camper',
+                1, // document_type_id por defecto
+                userData.document_number,
                 cityId,
-                ageId,
-                'camper'
+                userData.birth_date
             ];
 
             const userResult = await conexion.query(userQuery, userParams);
+            const userId = userResult.data.insertId;
 
-            // 7. Retornar usuario creado
+            // 6. Retornar usuario creado
             return {
-                id: userResult.data.insertId,
+                id: userId,
                 ...userData,
                 password: undefined,
                 role: 'camper'
             };
         } catch (error) {
+            console.error('Error en createWithRelations:', error);
             throw error;
         }
     }
-
     static async findByEmail(email) {
-        console.log('findByEmail:', { email });
         try {
             const query = `
-                SELECT U.*, 
-                       A.birth_date,
-                       DN.document_number,
-                       C.name as city_name
-                FROM USER U 
-                LEFT JOIN AGE A ON U.age_id = A.id
-                LEFT JOIN DOCUMENT_NUMBER DN ON U.document_number_id = DN.id
-                LEFT JOIN CITY C ON U.city_id = C.id
-                WHERE U.email = ?
+                SELECT u.*, c.name as city_name
+                FROM USER u
+                LEFT JOIN CITY c ON u.city_id = c.id
+                WHERE u.email = ?
             `;
             const result = await conexion.query(query, [email]);
             return result.data[0];
@@ -137,18 +89,12 @@ class UserModel {
     }
 
     static async findById(id) {
-        console.log('findById:', { id });
         try {
             const query = `
-                SELECT U.*,
-                       A.birth_date,
-                       DN.document_number,
-                       C.name as city_name
-                FROM USER U
-                LEFT JOIN AGE A ON U.age_id = A.id
-                LEFT JOIN DOCUMENT_NUMBER DN ON U.document_number_id = DN.id
-                LEFT JOIN CITY C ON U.city_id = C.id
-                WHERE U.id = ?
+                SELECT u.*, c.name as city_name
+                FROM USER u
+                LEFT JOIN CITY c ON u.city_id = c.id
+                WHERE u.id = ?
             `;
             const result = await conexion.query(query, [id]);
             if (result.data[0]) {
@@ -161,17 +107,13 @@ class UserModel {
     }
 
     static async findAll() {
-        console.log('findAll');
         try {
             const query = `
-                SELECT U.id, U.first_name, U.last_name, U.email, U.role,
-                       A.birth_date,
-                       DN.document_number,
-                       C.name as city_name
-                FROM USER U
-                LEFT JOIN AGE A ON U.age_id = A.id
-                LEFT JOIN DOCUMENT_NUMBER DN ON U.document_number_id = DN.id
-                LEFT JOIN CITY C ON U.city_id = C.id
+                SELECT u.id, u.first_name, u.last_name, u.email, u.role,
+                       u.document_number, u.birth_date,
+                       c.name as city_name
+                FROM USER u
+                LEFT JOIN CITY c ON u.city_id = c.id
             `;
             const result = await conexion.query(query);
             return result.data;
@@ -180,9 +122,63 @@ class UserModel {
         }
     }
 
+    static async checkExistingEmail(email) {
+        const query = 'SELECT id FROM USER WHERE email = ?';
+        const result = await conexion.query(query, [email]);
+        if (result.data[0]) {
+            throw new Error('El email ya está registrado');
+        }
+    }
+
     static async validatePassword(user, password) {
-        console.log('validatePassword:', { userId: user.id });
         return await bcrypt.compare(password, user.password);
+    }
+
+    static async update(id, userData) {
+        try {
+            // Si se proporciona una nueva contraseña, encriptarla
+            if (userData.password) {
+                const salt = await bcrypt.genSalt(10);
+                userData.password = await bcrypt.hash(userData.password, salt);
+            }
+
+            // Si se proporciona una nueva ciudad, obtener o crear su ID
+            let cityId;
+            if (userData.city) {
+                const cityResult = await conexion.query('SELECT id FROM CITY WHERE name = ?', [userData.city]);
+                if (cityResult.data[0]) {
+                    cityId = cityResult.data[0].id;
+                } else {
+                    const newCityResult = await conexion.query('INSERT INTO CITY (name) VALUES (?)', [userData.city]);
+                    cityId = newCityResult.data.insertId;
+                }
+                userData.city_id = cityId;
+                delete userData.city;
+            }
+
+            // Construir la consulta de actualización
+            const updateFields = Object.keys(userData)
+                .filter(key => userData[key] !== undefined)
+                .map(key => `${key} = ?`);
+            
+            const query = `UPDATE USER SET ${updateFields.join(', ')} WHERE id = ?`;
+            const values = [...Object.values(userData).filter(value => value !== undefined), id];
+            
+            await conexion.query(query, values);
+            return await this.findById(id);
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    static async delete(id) {
+        try {
+            const query = 'DELETE FROM USER WHERE id = ?';
+            await conexion.query(query, [id]);
+            return true;
+        } catch (error) {
+            throw error;
+        }
     }
 }
 
