@@ -32,6 +32,11 @@ const CamperModel = {
             throw new Error('No tienes permiso para crear un perfil para otro usuario');
         }
 
+        // Validación de datos
+        if (!title || !description || !about || !full_name || !age || !city_id) {
+            throw new Error("Todos los campos son obligatorios (title, description, about, full_name, age, city_id).");
+        }
+
         const query = `
             INSERT INTO CAMPER (
                 user_id,

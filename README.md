@@ -292,7 +292,27 @@
 **Code** : `200 OK`
 
 ```javascript
+  {
+  "user_id": 3,
+  "title": "Nuevo Camper",
+  "description": "Descripción del camper",
+  "about": "Información adicional sobre el camper",
+  "image": "https://example.com/imagen.jpg",
+  "main_video_url": "https://example.com/video.mp4",
+  "document_number_id": 5,
+  "full_name": "Nombre Completo",
+  "age": 25,
+  "city_id": 2,
+  "profile_picture": "https://example.com/foto_perfil.jpg"
+}
 
+```
+
+``` javascript
+  {
+    "message": "Camper creado",
+    "id": 7
+  }
 ```
 
 ## Actualizar un Camper
@@ -306,7 +326,15 @@
 **Code** : `200 OK`
 
 ```javascript
+  {
+    "title": "Nuevo Camper"
+  }
+```
 
+```javascript
+  {
+    "message": "Camper actualizado"
+  }
 ```
 
 ## Eliminar un Sponsor
@@ -341,3 +369,143 @@
 }
 ```
 
+## Obtener todos los Méritos
+
+**Method** : GET
+
+**URL** : `http://localhost:5000/merits/`
+
+### Success Responses
+
+**Code** : `200 OK`
+
+```javascript
+[
+  {
+    "id": 1,
+    "name": "Espíritu Guerrero",
+    "icon": "⚔"
+  },
+  {
+    "id": 2,
+    "name": "Nuevos horizontes",
+    "icon": "🌅"
+  },
+  {
+    "id": 3,
+    "name": "Trota mundos",
+    "icon": "🌎"
+  }
+  ...
+]
+```
+
+------
+
+## Obtener los Méritos de un Usuario
+
+**Method** : GET
+
+**URL** : `http://localhost:5000/merits/:userId`
+
+### URL Params
+
+- **userId** : ID del usuario cuyos méritos se desean obtener.
+
+### Success Responses
+
+**Code** : `200 OK`
+
+```javascript
+javascriptCopiar código[
+  {
+    "id": 2,
+    "name": "Nuevos horizontes",
+    "icon": "🌅"
+  },
+  {
+    "id": 4,
+    "name": "Primer programador",
+    "icon": "💻"
+  }
+]
+```
+
+**Code** : `403 Forbidden`
+
+```javascript
+{
+  "message": "No tienes permiso para acceder a estos méritos"
+}
+```
+
+------
+
+## Asignar un Mérito a un Usuario
+
+**Method** : POST
+
+**URL** : `http://localhost:5000/merits/`
+
+### Request Body
+
+```javascript
+{
+  "user_id": 7,
+  "merit_id": 2
+}
+```
+
+### Success Responses
+
+**Code** : `201 Created`
+
+```javascript
+{
+  "message": "Mérito asignado exitosamente",
+  "id": 5
+}
+```
+
+**Code** : `403 Forbidden`
+
+```javascript
+{
+  "message": "No tienes permiso para asignar méritos a otros usuarios."
+}
+```
+
+------
+
+## Actualizar un Mérito Asignado
+
+**Method** : PUT
+
+**URL** : `http://localhost:5000/merits/`
+
+### Request Body
+
+```javascript
+{
+  "user_id": 7,
+  "merit_id": 3
+}
+```
+
+### Success Responses
+
+**Code** : `200 OK`
+
+```javascript
+{
+  "message": "Mérito actualizado exitosamente"
+}
+```
+
+**Code** : `403 Forbidden`
+
+```javascript
+{
+  "message": "No tienes permiso para actualizar méritos de otros usuarios."
+}
+```
