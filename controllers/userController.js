@@ -50,6 +50,8 @@ class UserController {
             
             // Buscar usuario por email
             const user = await UserModel.findByEmail(email);
+            console.log("user:", user);
+            
             
             if (!user) {
                 return res.status(401).json({ message: 'Credenciales inválidas' });
@@ -64,7 +66,7 @@ class UserController {
             // Generar token
             const token = jwt.sign(
                 { 
-                    id: user.id, 
+                    id: user.user_id, 
                     email: user.email, 
                     role: user.role 
                 },
@@ -74,7 +76,7 @@ class UserController {
 
             // Eliminar datos sensibles antes de enviar la respuesta
             const userData = {
-                id: user.id,
+                id: user.user_id,
                 first_name: user.first_name,
                 last_name: user.last_name,
                 email: user.email,
