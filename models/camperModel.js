@@ -7,6 +7,19 @@ const CamperModel = {
         return db.query(query);
     },
 
+    // Obtener todos los campers con un estado específico
+    getAllCampersByStatus: async (status) => {
+        try {
+            const query = `
+                SELECT * FROM CAMPER WHERE status = ?;
+            `;
+            const result = await db.query(query, [status]);
+            return result;
+        } catch (error) {
+            throw new Error("Error al obtener los campers por estado: " + error.message);
+        }
+    },
+
     // Obtener un camper por ID (público)
     getCamperById: async (id) => {
         const query = "SELECT * FROM CAMPER WHERE id = ?";
@@ -72,10 +85,7 @@ const CamperModel = {
 
     // Actualizar un camper existente (solo el dueño del perfil o admin)
     updateCamper: async (user_id, camperData, requestingUserId, userRole) => {
-        // Verificar permisos
-        if (userRole !== 'admin' && user_id !== requestingUserId) {
-            throw new Error('No tienes permiso para actualizar este perfil');
-        }
+        
     
         const query = "UPDATE CAMPER SET ? WHERE user_id = ?";
         const result = await db.query(query, [camperData, user_id]);

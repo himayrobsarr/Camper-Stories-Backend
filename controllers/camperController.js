@@ -12,6 +12,21 @@ const CamperController = {
         }
     },
 
+    // Obtener todos los campers filtrados por estado (egresado o en formación)
+    getAllByStatus: async (req, res) => {
+        const { status } = req.params; // Ejemplo: "egresado" o "en_formacion"
+        try {
+            const result = await CamperModel.getAllCampersByStatus(status);
+            if (!result.data.length) {
+                return res.status(404).json({ message: "No se encontraron campers con ese estado" });
+            }
+            res.status(200).json(result.data);
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({ message: "Error al obtener los campers por estado", error: error.message });
+        }
+    },
+
     // Obtener un camper por ID
     getById: async (req, res) => {
         const { id } = req.params;
