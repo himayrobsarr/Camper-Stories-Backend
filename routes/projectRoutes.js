@@ -9,6 +9,7 @@ router.get("/:camperid", ProjectController.getProjectsByCamperId); // Obtener un
 
 // Rutas protegidas
 router.post("/", authMiddleware, ProjectController.addProjectForCamper); // Crear un nuevo projecto
-router.put("/:id", authMiddleware, ProjectController.updateProjectForCamper); // Actualizar un projecto existente
+router.put("/:projectid", authMiddleware, ProjectController.updateProjectForCamper); // Actualizar un proyecto existente
+
 
 module.exports = router;

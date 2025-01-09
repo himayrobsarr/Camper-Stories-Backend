@@ -187,11 +187,14 @@
 
 ```javascript
 {
-  "first_name": "alejandra", 
-  "last_name": "Díaz", 
-  "email": "aleja98@gmail.com",
-  "password": "1234", 
-  "role": "camper"
+  "first_name": "Tony",
+  "last_name": "Díaz",
+  "email": "tony9@gmail.com",
+  "password": "1234",
+  "role": "camper",
+  "document_number": "123456789",
+  "birth_date": "1990-05-15",
+  "city": "Medellín"
 }
 ```
 
