@@ -55,7 +55,7 @@ const CamperModel = {
         const values = [
             user_id,
             title,
-            description,
+            history,
             about,
             image,
             main_video_url,
