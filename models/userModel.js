@@ -21,10 +21,13 @@ class UserModel {
                 // 1. Verificar email duplicado
                 await this.checkExistingEmail(userData.email);
 
-                // 2. Verificar que existe el tipo de documento
+                // 2. Verificar número de documento duplicado
+                await this.checkExistingDocumentNumber(userData.document_number);
+
+                // 3. Verificar que existe el tipo de documento
                 await this.checkDocumentType(1);
 
-                // 3. Obtener o crear CITY
+                // 4. Obtener o crear CITY
                 let cityId;
                 const cityQuery = 'SELECT id FROM CITY WHERE name = ?';
                 const cityResult = await conexion.query(cityQuery, [userData.city]);
@@ -37,11 +40,11 @@ class UserModel {
                     cityId = newCityResult.data.insertId;
                 }
 
-                // 4. Encriptar contraseña
+                // 5. Encriptar contraseña
                 const salt = await bcrypt.genSalt(10);
                 const hashedPassword = await bcrypt.hash(userData.password, salt);
 
-                // 5. Crear usuario
+                // 6. Crear usuario
                 const userQuery = `
                     INSERT INTO USER (
                         first_name, last_name, email, password,
@@ -65,7 +68,7 @@ class UserModel {
                 const userResult = await conexion.query(userQuery, userParams);
                 const userId = userResult.data.insertId;
 
-                // 6. Crear registro de camper
+                // 7. Crear registro de camper
                 const camperQuery = `
                 INSERT INTO CAMPER (
                     user_id,
@@ -97,7 +100,7 @@ class UserModel {
                 // Confirmar transacción
                 await conexion.query('COMMIT');
 
-                // 7. Retornar usuario creado
+                // 8. Retornar usuario creado
                 return {
                     id: userId,
                     ...userData,
@@ -243,6 +246,14 @@ class UserModel {
             }
         } catch (error) {
             throw error;
+        }
+    }
+
+    static async checkExistingDocumentNumber(documentNumber) {
+        const query = 'SELECT id FROM USER WHERE document_number = ?';
+        const result = await conexion.query(query, [documentNumber]);
+        if (result.data[0]) {
+            throw new Error('El número de documento ya está registrado');
         }
     }
 }

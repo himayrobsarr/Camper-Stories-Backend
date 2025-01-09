@@ -12,6 +12,6 @@ router.get("/", limit.getMeritsByCamperLimiter, MeritController.getAll); // Obte
 router.get("/:userId", limit.getMeritsByCamperLimiter, MeritController.getByUserId); // Obtener méritos por usuario
 router.post("/", authMiddleware, limit.assignMeritToCamperLimiter, MeritController.assignMerit); // Asignar un mérito
 router.put("/", authMiddleware, limit.updateMeritForCamperLimiter, MeritController.updateMerit); // Actualizar mérito asignado
-router.put('/:camperId/merits', MeritControllerController.updateCamperMerits);
+router.put('/:camperId/merits', MeritController.updateCamperMerits);
 
 module.exports = router;
