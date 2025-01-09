@@ -21,62 +21,21 @@ const CamperModel = {
         `;
         return db.query(query);
     },
-    
-    getVideosByCamperId: async (camperId) => {
-        const query = `
-            SELECT tv.*
-            FROM TRAINING_VIDEO tv
-            WHERE tv.camper_id = ?;
-        `;
+
+    // Obtener todos los campers con un estado específico
+    getAllCampersByStatus: async (status) => {
         try {
-            const result = await db.query(query, [camperId]);
-    
-            // Accede a la propiedad 'data' si el resultado tiene este formato
-            const rows = result.data;
-            if (!rows || !Array.isArray(rows)) {
-                throw new Error("El resultado no es un array o es undefined.");
-            }
-    
-            console.log("Filas obtenidas:", rows);
-            return rows; // Retorna los videos encontrados
+            const query = `
+                SELECT * FROM CAMPER WHERE status = ?;
+            `;
+            const result = await db.query(query, [status]);
+            return result;
         } catch (error) {
-            console.error("Error al obtener los videos por camper_id:", error);
-            throw error; // Lanza el error para manejarlo en niveles superiores
+            throw new Error("Error al obtener los campers por estado: " + error.message);
         }
     },
 
-    addTrainingVideo: async (camperId, { title, video_url, platform }) => {
-        const query = `
-            INSERT INTO TRAINING_VIDEO (camper_id, title, video_url, platform)
-            VALUES (?, ?, ?, ?);
-        `;
-        try {
-            const result = await db.query(query, [camperId, title, video_url, platform]);
-            console.log("Video añadido exitosamente:", result);
-            return result; // Retorna el resultado de la inserción
-        } catch (error) {
-            console.error("Error al añadir un video de formación:", error);
-            throw error; // Lanza el error para manejarlo en niveles superiores
-        }
-    },
-
-    deleteTrainingVideo: async (camperId, videoId) => {
-        const query = `
-            DELETE FROM TRAINING_VIDEO
-            WHERE camper_id = ? AND id = ?;
-        `;
-        try {
-            const result = await db.query(query, [camperId, videoId]);
-            console.log("Video eliminado:", result);
-            return result; // Retorna el resultado de la eliminación
-        } catch (error) {
-            console.error("Error al eliminar el video de formación:", error);
-            throw error; // Lanza el error para manejarlo en niveles superiores
-        }
-    },
-    
-    
-    // Obtener un camper por ID
+    // Obtener un camper por ID (público)
     getCamperById: async (id) => {
         const query = "SELECT c.*, u.birth_date, ct.name FROM CAMPER c JOIN USER u ON c.user_id = u.id JOIN CITY ct ON u.city_id = ct.id WHERE c.id = ?;";
         return db.query(query, [id]);
