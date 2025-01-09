@@ -2,32 +2,22 @@ const db = require("../helpers/conexion"); // Importa la conexión a MySQL
 
 const CamperProjectModel = {
     // Obtener todos los proyectos de un camper por camper_id
-    getProjectsByCamperId: async (camper_id) => {
-        console.log("Camper ID recibido en el modelo:", camper_id); // Depuración
+    getProjectsByCamperId: async (camperid) => {
         const query = `
-            SELECT p.*
-            FROM CAMPER_PROJECT cp
-            INNER JOIN PROJECT p ON cp.project_id = p.id
-            WHERE cp.camper_id = ?
-        `;
-        return new Promise((resolve, reject) => {
-            db.query(query, [camper_id], (error, results) => {
-                if (error) {
-                    console.error("Error al ejecutar la query:", error.message);
-                    return reject(error);
-                }
-                resolve(results); // Devuelve los resultados al resolver la promesa
-            });
-        });
+            SELECT m.*
+            FROM CAMPER_PROJECT cm
+            JOIN PROJECT m ON cm.project_id = m.id
+            WHERE cm.camper_id = ?`;
+        return db.query(query, [camperid]);
     },
     
     
 
     // Agregar un nuevo proyecto para un camper
-    addProjectForCamper: async (camper_id, projectData) => {
+    addProjectForCamper: async (camper_id, projectData, requestingUserId) => {
         const { title, description, image, code_url } = projectData;
 
-        // Validaciones
+        // Validaciones de entrada
         if (!title || typeof title !== 'string' || title.trim() === '') {
             throw new Error('El título es obligatorio y debe ser una cadena no vacía');
         }
@@ -36,6 +26,16 @@ const CamperProjectModel = {
         }
         if (code_url && !/^https?:\/\//.test(code_url)) {
             throw new Error('La URL del código debe ser un enlace válido');
+        }
+
+        // Verificar que el usuario logueado tiene acceso al camper
+        const camperQuery = `
+            SELECT user_id FROM CAMPER WHERE camper_id = ? LIMIT 1
+        `;
+        const [camper] = await db.query(camperQuery, [camper_id]);
+
+        if (!camper || camper.user_id !== requestingUserId) {
+            throw new Error('No tienes permiso para agregar proyectos a este camper');
         }
 
         // Insertar el nuevo proyecto en la tabla PROJECT

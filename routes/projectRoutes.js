@@ -5,7 +5,7 @@ const authMiddleware = require('../middlewares/authMiddleware');
 const router = express.Router();
 
 // Rutas públicas
-router.get("/:camper_id", ProjectController.getProjectsByCamperId); // Obtener un projecto por ID
+router.get("/:camperid", ProjectController.getProjectsByCamperId); // Obtener un projecto por ID
 
 // Rutas protegidas
 router.post("/", authMiddleware, ProjectController.addProjectForCamper); // Crear un nuevo projecto
