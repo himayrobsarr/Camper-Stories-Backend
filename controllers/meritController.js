@@ -15,13 +15,8 @@ const MeritController = {
     // Obtener los méritos de un usuario específico
     getByUserId: async (req, res) => {
         const { userId } = req.params;
-        const requestingUserId = req.user.id; // ID del usuario logueado
-        const userRole = req.user.role; // Rol del usuario logueado
 
         try {
-            if (userRole !== 'admin' && parseInt(userId) !== requestingUserId) {
-                return res.status(403).json({ message: "No tienes permiso para acceder a estos méritos" });
-            }
             const result = await MeritModel.getMeritsByUserId(userId);
             res.status(200).json(result.data);
         } catch (error) {

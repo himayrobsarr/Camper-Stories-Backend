@@ -9,9 +9,9 @@ const router = express.Router();
 router.get("/", limit.getMeritsByCamperLimiter, MeritController.getAll); // Obtener todos los méritos
 
 // Rutas protegidas
-router.get("/:userId", authMiddleware, limit.getMeritsByCamperLimiter, MeritController.getByUserId); // Obtener méritos por usuario
+router.get("/:userId", limit.getMeritsByCamperLimiter, MeritController.getByUserId); // Obtener méritos por usuario
 router.post("/", authMiddleware, limit.assignMeritToCamperLimiter, MeritController.assignMerit); // Asignar un mérito
 router.put("/", authMiddleware, limit.updateMeritForCamperLimiter, MeritController.updateMerit); // Actualizar mérito asignado
-router.put('/:camperId/merits', MeritController.updateCamperMerits);
+router.put('/:camperId/merits', MeritControllerController.updateCamperMerits);
 
 module.exports = router;
