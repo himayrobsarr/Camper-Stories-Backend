@@ -13,17 +13,20 @@ const CamperProjectController = {
         }
     },      
 
-    
+    // Agregar un nuevo proyecto para un camper
     addProjectForCamper: async (req, res) => {
-        const projectData = req.body;
-        try {
-            // Pasamos los datos del proyecto al modelo
-            const result = await CamperProjectModel.addProjectForCamper(projectData);
 
+        const projectData = req.body;
+    
+        const requestingUserId = req.user.id; // ID del usuario logueado
+        try {
+            // Pasamos el user_id del usuario logueado al modelo
+            const result = await CamperProjectModel.addProjectForCamper(projectData, requestingUserId);
+    
             if (!result) {
                 throw new Error('No se pudo agregar el proyecto');
             }
-
+    
             // Respuesta exitosa si el proyecto se agrega correctamente
             res.status(201).json({
                 message: "Proyecto agregado",
@@ -31,8 +34,8 @@ const CamperProjectController = {
             });
         } catch (error) {
             console.error("Error en el controlador addProjectForCamper:", error);
-
-            // Manejo de errores basados en el tipo de error
+    
+            // Manejo de errores basado en el tipo de error
             if (error.message.includes('No se pudo agregar el proyecto')) {
                 res.status(400).json({
                     message: "No se pudo agregar el proyecto. Intenta nuevamente."
@@ -52,43 +55,47 @@ const CamperProjectController = {
         }
     },
 
+    // Actualizar un proyecto de un camper
     updateProjectForCamper: async (req, res) => {
-        const { projectid } = req.params;  // Obtener el ID del proyecto desde la URL
-        const projectData = req.body;  // Los nuevos datos del proyecto que vienen en el cuerpo de la solicitud
-        
+        const { id } = req.params; // Cambié 'project_id' a 'id'
+        const projectData = req.body;
+        const requestingUserId = req.user.id; // ID del usuario logueado
+
         try {
-            // Llamamos al modelo para actualizar el proyecto
-            const result = await CamperProjectModel.updateProjectForCamper(projectid, projectData);
+            // Pasamos el user_id y el id (anteriormente project_id) al modelo para actualizar el proyecto
+            const result = await CamperProjectModel.updateProjectForCamper(projectData, requestingUserId, id);
             
-            // Enviar respuesta exitosa si la actualización fue exitosa
+            if (!result) {
+                throw new Error('No se pudo actualizar el proyecto');
+            }
+            
+            // Respuesta exitosa si el proyecto se actualiza correctamente
             res.status(200).json({
                 message: "Proyecto actualizado",
                 project: result
             });
         } catch (error) {
-            console.error("Error al actualizar el proyecto:", error);
-        
-            // Manejar errores según su tipo
-            if (error.message.includes('El proyecto no pertenece')) {
-                // Error 403 cuando el proyecto no pertenece al camper
-                res.status(403).json({
-                    message: "El proyecto no pertenece al camper especificado."
-                });
-            } else if (error.message.includes('No hay datos nuevos para actualizar')) {
-                // Error 400 cuando no hay datos nuevos para actualizar
+            console.error("Error en el controlador updateProjectForCamper:", error);
+            
+            // Manejo de errores basado en el tipo de error
+            if (error.message.includes('No se pudo actualizar el proyecto')) {
                 res.status(400).json({
-                    message: "No hay datos nuevos para actualizar el proyecto."
+                    message: "No se pudo actualizar el proyecto. Intenta nuevamente."
+                });
+            } else if (error.message.includes('Error en la base de datos')) {
+                res.status(500).json({
+                    message: "Hubo un error al interactuar con la base de datos.",
+                    error: error.message
                 });
             } else {
-                // Error 500 en caso de otros problemas generales
+                // Manejo de errores generales
                 res.status(500).json({
-                    message: "Hubo un error al intentar actualizar el proyecto.",
+                    message: "Error al actualizar el proyecto",
                     error: error.message
                 });
             }
         }
-    }    
-    
+    }
 };
 
 module.exports = CamperProjectController;
