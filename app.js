@@ -36,6 +36,7 @@ const camperRoutes = require("./routes/camperRoutes");
 const sponsorRoutes = require("./routes/sponsorRoutes");
 const dreamsRoutes = require("./routes/dreamRoutes");
 const meritRoutes = require("./routes/meritRoutes");
+const projectRoutes = require("./routes/projectRoutes");
 
 // * Configuración de los endpoints principales
 app.use("/users", userRoutes);
@@ -43,6 +44,7 @@ app.use("/campers", camperRoutes);
 app.use("/sponsors", sponsorRoutes);
 app.use("/dreams", dreamsRoutes);
 app.use("/merits", meritRoutes);
+app.use("/projects", projectRoutes);
 
 // ? Configuración del rate limiting global
 // @param windowMs: Ventana de tiempo en milisegundos
