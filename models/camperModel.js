@@ -22,7 +22,11 @@ const CamperModel = {
         return db.query(query);
     },
     
-
+    getVideosById: async()=>{
+        const query = `
+        SELECT
+        `
+    },
     // Obtener un camper por ID
     getCamperById: async (id) => {
         const query = "SELECT * FROM CAMPER WHERE id = ?";
