@@ -8,9 +8,16 @@ const router = express.Router();
 // Rutas públicas
 router.get("/", limit.getAllCampersLimiter, CamperController.getAll); // Obtener todos los campers
 router.get("/:id", limit.getCamperByIdLimiter, CamperController.getById); // Obtener un camper por ID
+
 router.get("/:camperId/videos", CamperController.getVideosByCamperId);
 router.post("/:id/videos", CamperController.addTrainingVideo);
 router.delete("/:id/videos/:video_id", CamperController.deleteTrainingVideo);
+
+router.get("/:id/proyects", CamperController.getProjectsByCamperId);
+router.post("/:id/proyects", CamperController.addProjectToCamper);
+router.delete("/:id/proyects/:proyect_id", CamperController.deleteProjectFromCamper);
+
+
 
 // Rutas protegidas
 router.post("/", authMiddleware, limit.createCamperLimiter, CamperController.create); // Crear un nuevo camper

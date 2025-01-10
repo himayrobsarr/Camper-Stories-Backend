@@ -193,6 +193,77 @@ const CamperModel = {
         const query = "DELETE FROM CAMPER WHERE id = ?";
         return db.query(query, [id]);
     },
+
+    //proyectos por camper etc
+    getProjectsByCamperId: async (camperId) => {
+        const query = `
+            SELECT p.*
+            FROM PROJECT p
+            INNER JOIN CAMPER_PROJECT cp ON p.id = cp.project_id
+            WHERE cp.camper_id = ?;
+        `;
+        try {
+            const result = await db.query(query, [camperId]);
+
+            console.log("Resultado de la consulta:", result); // Log para verificar la estructura
+
+            // Si el resultado es un objeto, debemos extraer la propiedad que contiene los datos.
+            const rows = Array.isArray(result) ? result : result.data || result[0];
+
+            console.log("Filas obtenidas:", rows); // Log de los resultados
+
+            return rows;
+        } catch (error) {
+            console.error("Error al obtener proyectos:", error);
+            throw error;
+        }
+    },
+
+    addProjectToCamper: async (camperId, { title, description, image }) => {
+        const queryProject = `
+            INSERT INTO PROJECT (title, description, image)
+            VALUES (?, ?, ?);
+        `;
+        const queryCamperProject = `
+            INSERT INTO CAMPER_PROJECT (camper_id, project_id)
+            VALUES (?, ?);
+        `;
+        
+        try {
+            // Insertar el proyecto en la tabla PROJECT
+            const projectResult = await db.query(queryProject, [title, description, image]);
+
+            // Acceder correctamente al insertId
+            const projectId = projectResult.data.insertId; // Aquí es donde obtenemos el insertId
+
+            // Verificar que se haya insertado el proyecto correctamente
+            if (!projectId) {
+                throw new Error("Error al obtener el project_id.");
+            }
+
+            // Insertar la relación entre el Camper y el Proyecto
+            await db.query(queryCamperProject, [camperId, projectId]);
+
+            return projectId; // Retornar el ID del proyecto recién insertado
+        } catch (error) {
+            console.error("Error al añadir un proyecto:", error.message);
+            throw error; // Lanza el error para manejarlo en niveles superiores
+        }
+    },
+
+    deleteProjectFromCamper: async (camperId, projectId) => {
+        const query = `
+            DELETE FROM CAMPER_PROJECT
+            WHERE camper_id = ? AND project_id = ?;
+        `;
+        try {
+            const result = await db.query(query, [camperId, projectId]);
+            return result.affectedRows;
+        } catch (error) {
+            console.error("Error al eliminar el proyecto:", error);
+            throw error;
+        }
+    },
 };
 
 module.exports = CamperModel;
