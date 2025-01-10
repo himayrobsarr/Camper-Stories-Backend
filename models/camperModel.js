@@ -3,9 +3,25 @@ const db = require("../helpers/conexion");
 const CamperModel = {
     // Obtener todos los campers
     getAllCampers: async () => {
-        const query = "SELECT * FROM CAMPER";
+        const query = `
+            SELECT 
+                c.id AS camper_id,
+                c.title,
+                c.history,
+                c.about,
+                c.image,
+                c.main_video_url,
+                c.full_name,
+                c.profile_picture,
+                c.status,
+                u.birth_date,
+                u.city_id
+            FROM CAMPER c
+            INNER JOIN USER u ON c.user_id = u.id
+        `;
         return db.query(query);
     },
+    
 
     // Obtener un camper por ID
     getCamperById: async (id) => {
