@@ -27,18 +27,8 @@ class UserModel {
                 // 3. Verificar que existe el tipo de documento
                 await this.checkDocumentType(1);
 
-                // 4. Obtener o crear CITY
-                let cityId;
-                const cityQuery = 'SELECT id FROM CITY WHERE name = ?';
-                const cityResult = await conexion.query(cityQuery, [userData.city]);
-                
-                if (cityResult.data.length > 0) {
-                    cityId = cityResult.data[0].id;
-                } else {
-                    const newCityQuery = 'INSERT INTO CITY (name) VALUES (?)';
-                    const newCityResult = await conexion.query(newCityQuery, [userData.city]);
-                    cityId = newCityResult.data.insertId;
-                }
+                // 4. Obtener cityId desde userData
+                const cityId = userData.city_id;
 
                 // 5. Encriptar contraseña
                 const salt = await bcrypt.genSalt(10);
@@ -70,29 +60,29 @@ class UserModel {
 
                 // 7. Crear registro de camper
                 const camperQuery = `
-                INSERT INTO CAMPER (
-                    user_id,
-                    title,
-                    history,
-                    about,
-                    image,
-                    main_video_url,
-                    full_name,
-                    profile_picture,
-                    status
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `;
-            
-            const camperParams = [
-                userId,                                     // user_id (FK)
-                'Nuevo Camper',                            // title (por defecto)
-                'Bienvenido a mi perfil de Camper',        // description (por defecto)
-                'Cuéntanos sobre ti...',                   // about (por defecto)
-                null,                                      // image (inicialmente vacío)
-                null,                                      // main_video_url (inicialmente vacío)
-                `${userData.first_name} ${userData.last_name}`,  // full_name
-                null,                                      // profile_picture (inicialmente vacío)
-                'formacion'                                    // status inicial
+                    INSERT INTO CAMPER (
+                        user_id,
+                        title,
+                        history,
+                        about,
+                        image,
+                        main_video_url,
+                        full_name,
+                        profile_picture,
+                        status
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `;
+                
+                const camperParams = [
+                    userId,                                     // user_id (FK)
+                    'Nuevo Camper',                            // title (por defecto)
+                    'Bienvenido a mi perfil de Camper',        // description (por defecto)
+                    'Cuéntanos sobre ti...',                   // about (por defecto)
+                    null,                                      // image (inicialmente vacío)
+                    null,                                      // main_video_url (inicialmente vacío)
+                    `${userData.first_name} ${userData.last_name}`,  // full_name
+                    null,                                      // profile_picture (inicialmente vacío)
+                    'formacion'                                    // status inicial
                 ];
 
                 await conexion.query(camperQuery, camperParams);
