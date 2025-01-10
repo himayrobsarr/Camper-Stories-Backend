@@ -3,7 +3,7 @@ node_modules/
 
 # Environment variables
 .env
-
+.envrespaldo
 # Logs
 logs/
 *.log
