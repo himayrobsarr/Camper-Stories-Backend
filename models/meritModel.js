@@ -18,24 +18,24 @@ const MeritModel = {
     },
 
     // Asignar un mérito a un usuario
-    assignMeritToUser: async ({ user_id, merit_id }, requestingUserId, userRole) => {
-        if (userRole !== 'admin' && user_id !== requestingUserId) {
-            throw new Error('No tienes permiso para asignar méritos a otros usuarios.');
+    updateCamperMerits: async ({ camperId, meritIds }) => {
+        try {
+            // First delete existing merit relations
+            await db.query('DELETE FROM CAMPER_MERIT WHERE user_id = ?', [camperId]);
+            
+            // Continuar con la inserción...
+            if (meritIds && meritIds.length > 0) {
+                const values = meritIds.map(meritId => [camperId, meritId]);
+                await db.query(
+                    'INSERT INTO CAMPER_MERIT (user_id, merit_id) VALUES ?',
+                    [values]
+                );
+            }
+            
+            return true;
+        } catch (error) {
+            throw new Error(`Error updating camper merits: ${error.message}`);
         }
-        const query = "INSERT INTO CAMPER_MERIT (user_id, merit_id) VALUES (?, ?)";
-        return db.query(query, [user_id, merit_id]);
-    },
-
-    // Actualizar un mérito asignado
-    updateMeritAssignment: async ({ user_id, merit_id }, requestingUserId, userRole) => {
-        if (userRole !== 'admin' && user_id !== requestingUserId) {
-            throw new Error('No tienes permiso para actualizar méritos de otros usuarios.');
-        }
-        const query = `
-            UPDATE CAMPER_MERIT
-            SET merit_id = ?
-            WHERE user_id = ?`;
-        return db.query(query, [merit_id, user_id]);
     }
 };
 

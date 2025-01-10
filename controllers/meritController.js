@@ -25,42 +25,12 @@ const MeritController = {
         }
     },
 
-    // Asignar un mérito a un usuario
-    assignMerit: async (req, res) => {
-        try {
-            const result = await MeritModel.assignMeritToUser(
-                req.body,
-                req.user.id,
-                req.user.role
-            );
-            res.status(201).json({ message: "Mérito asignado exitosamente", id: result.data.insertId });
-        } catch (error) {
-            console.error(error);
-            res.status(error.message.includes('permiso') ? 403 : 500).json({ message: error.message });
-        }
-    },
-
-    // Actualizar un mérito asignado
-    updateMerit: async (req, res) => {
-        try {
-            const result = await MeritModel.updateMeritAssignment(
-                req.body,
-                req.user.id,
-                req.user.role
-            );
-            res.status(200).json({ message: "Mérito actualizado exitosamente" });
-        } catch (error) {
-            console.error(error);
-            res.status(error.message.includes('permiso') ? 403 : 500).json({ message: error.message });
-        }
-    },
-
     // Actualizar todos los méritos de un camper
     updateCamperMerits: async (req, res) => {
         const { camperId } = req.params;
         const { meritIds } = req.body;
         const userRole = req.user.role;
-
+    
         try {
             // Validaciones básicas
             if (!camperId) {
@@ -68,26 +38,26 @@ const MeritController = {
                     message: "El ID del camper es requerido" 
                 });
             }
-
+    
             if (!Array.isArray(meritIds)) {
                 return res.status(400).json({ 
                     message: "meritIds debe ser un array" 
                 });
             }
-
-            // Verificar permisos
-            if (userRole !== 'admin' && userRole !== 'trainer') {
-                return res.status(403).json({ 
-                    message: "No tienes permiso para actualizar méritos" 
-                });
-            }
-
-            const result = await MeritModel.updateCamperMerits(camperId, meritIds);
+    
+            // // Verificar permisos
+            // if (userRole !== 'admin' && userRole !== 'trainer') {
+            //     return res.status(403).json({ 
+            //         message: "No tienes permiso para actualizar méritos" 
+            //     });
+            // }
+    
+            await MeritModel.updateCamperMerits({ camperId, meritIds });
+            
             return res.status(200).json({
-                message: "Méritos actualizados exitosamente",
-                data: result
+                message: "Méritos actualizados exitosamente"
             });
-
+    
         } catch (error) {
             console.error('Error en updateCamperMerits:', error);
             return res.status(500).json({ 
