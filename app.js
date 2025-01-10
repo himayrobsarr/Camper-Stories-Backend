@@ -38,6 +38,7 @@ const dreamsRoutes = require("./routes/dreamRoutes");
 const meritRoutes = require("./routes/meritRoutes");
 const projectRoutes = require("./routes/projectRoutes");
 const cityRoutes = require('./routes/cityRoutes');
+const technologyRoutes = require('./routes/technologyRoutes.js');
 
 // * Configuración de los endpoints principales
 app.use("/users", userRoutes);
@@ -47,6 +48,8 @@ app.use("/dreams", dreamsRoutes);
 app.use("/merits", meritRoutes);
 app.use("/projects", projectRoutes);
 app.use('/cities', cityRoutes);
+app.use('/technology', technologyRoutes); 
+
 
 // ? Configuración del rate limiting global
 // @param windowMs: Ventana de tiempo en milisegundos
@@ -74,6 +77,88 @@ app.use(limiter);
 app.use("/users/login", authLimiter);
 app.use("/users/register", authLimiter);
 
+// * Configuración de AWS
+const AWS = require('aws-sdk');
+AWS.config.update({
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    region: process.env.AWS_REGION,
+});
+
+const s3 = new AWS.S3();
+
+
+// Middleware para manejar la carga de archivos
+const fileUpload = require('express-fileupload');
+app.use(fileUpload());
+
+// Ruta para subir la imagen
+app.post('/upload', async (req, res) => {
+    if (!req.files || Object.keys(req.files).length === 0) {
+        return res.status(400).send('No se subió ningún archivo.');
+    }
+
+    const archivo = req.files.archivo;
+    const tipoImagen = req.body.tipo; // 'proyecto', 'sueño', 'camper'
+    const id = req.body.id; // El ID correspondiente al proyecto, sueño o camper
+
+    // Validación para asegurarse de que el tipo de imagen es válido
+    const tiposValidos = ['proyecto', 'sueño', 'camper'];
+    if (!tiposValidos.includes(tipoImagen)) {
+        return res.status(400).send('Tipo de imagen no válido.');
+    }
+
+    // Genera el nombre de la ruta en S3 según el tipo de imagen
+    let rutaS3;
+    switch(tipoImagen) {
+        case 'proyecto':
+            rutaS3 = `projects/${id}`;
+            break;
+        case 'sueño':
+            rutaS3 = `dreams/${id}`;
+            break;
+        case 'camper':
+            rutaS3 = `campers/${id}`;
+            break;
+        default:
+            return res.status(400).send('Tipo de imagen no válido.');
+    }
+
+    const params = {
+        Bucket: process.env.AWS_BUCKET_NAME,
+        Key: rutaS3,
+        Body: archivo.data,
+        ContentType: archivo.mimetype // Hace la imagen pública
+    };
+
+    try {
+        // Subir la imagen a S3
+        const data = await s3.upload(params).promise();
+        const imageUrl = data.Location;  // URL de la imagen subida a S3
+
+        // Guardar solo la URL en la base de datos dependiendo del tipo de imagen
+        let query;
+
+        if (tipoImagen === 'proyecto') {
+            query = 'UPDATE PROJECT SET image = ? WHERE id = ?';  // Actualiza el campo `image` en PROJECT
+        } else if (tipoImagen === 'sueño') {
+            query = 'UPDATE DREAMS SET image_url = ? WHERE id = ?';  // Actualiza el campo `image_url` en DREAMS
+        } else if (tipoImagen === 'camper') {
+            query = 'UPDATE CAMPER SET image_url = ? WHERE id = ?';  // Actualiza el campo `image_url` en CAMPER
+        }
+
+        // Ejecutar la consulta de base de datos
+        await db.query(query, [imageUrl, id]); // Asegúrate de pasar el ID correcto
+
+        res.send('Imagen subida con éxito y URL guardada en la base de datos.');
+    } catch (err) {
+        console.error('Error al subir la imagen:', err);
+        res.status(500).send('Error al subir la imagen.');
+    }
+});
+
+
+
 // * Verificación inicial de la conexión a la base de datos
 (async () => {
     try {
@@ -99,4 +184,3 @@ const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
     console.log(`Servidor ejecutándose en el puerto ${PORT}`);
 });
-

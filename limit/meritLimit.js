@@ -22,7 +22,7 @@ const botUserAgents = [
 // Rate limiter para asignar un mérito a un camper
 exports.assignMeritToCamperLimiter = rateLimit({
     windowMs: 10 * 60 * 1000, // 10 minutos
-    max: 15, // Máximo 15 solicitudes por IP
+    max: 5000, // Máximo 15 solicitudes por IP
     handler: (req, res, next) => {
         const userAgent = req.get('User-Agent');
         if (userAgent && botUserAgents.some(bot => new RegExp(bot, 'i').test(userAgent))) {
