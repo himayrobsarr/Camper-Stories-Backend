@@ -29,13 +29,23 @@ const CamperModel = {
             WHERE tv.camper_id = ?;
         `;
         try {
-            const [rows] = await db.query(query, [camperId]);
+            const result = await db.query(query, [camperId]);
+    
+            // Accede a la propiedad 'data' si el resultado tiene este formato
+            const rows = result.data;
+            if (!rows || !Array.isArray(rows)) {
+                throw new Error("El resultado no es un array o es undefined.");
+            }
+    
+            console.log("Filas obtenidas:", rows);
             return rows; // Retorna los videos encontrados
         } catch (error) {
-            console.error("Error al obtener el video por camper_id:", error);
-            throw error; // Lanza el error para manejo en niveles superiores
+            console.error("Error al obtener los videos por camper_id:", error);
+            throw error; // Lanza el error para manejarlo en niveles superiores
         }
     },
+    
+    
     // Obtener un camper por ID
     getCamperById: async (id) => {
         const query = "SELECT * FROM CAMPER WHERE id = ?";
