@@ -12,6 +12,23 @@ const CamperController = {
         }
     },
 
+    getVideosByCamperId: async (req, res) => {
+        const { camperId } = req.params; // Obtener camperId desde la URL
+
+        try {
+            const videos = await CamperModel.getVideosByCamperId(camperId);
+
+            if (videos.length === 0) {
+                return res.status(404).json({ message: "No se encontraron videos para este camper." });
+            }
+
+            return res.status(200).json(videos); // Retornar los videos en JSON
+        } catch (error) {
+            console.error("Error al obtener videos:", error);
+            return res.status(500).json({ message: "Error al obtener los videos. Inténtalo más tarde." });
+        }
+    },
+
     // Obtener un camper por ID
     getById: async (req, res) => {
         const { id } = req.params;

@@ -22,10 +22,19 @@ const CamperModel = {
         return db.query(query);
     },
     
-    getVideosById: async()=>{
+    getVideosByCamperId: async (camperId) => {
         const query = `
-        SELECT
-        `
+            SELECT tv.*
+            FROM TRAINING_VIDEO tv
+            WHERE tv.camper_id = ?;
+        `;
+        try {
+            const [rows] = await db.query(query, [camperId]);
+            return rows; // Retorna los videos encontrados
+        } catch (error) {
+            console.error("Error al obtener el video por camper_id:", error);
+            throw error; // Lanza el error para manejo en niveles superiores
+        }
     },
     // Obtener un camper por ID
     getCamperById: async (id) => {
