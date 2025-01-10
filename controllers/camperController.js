@@ -95,7 +95,6 @@ const CamperController = {
         }
     },
     
-
     // Crear un nuevo camper
     create: async (req, res) => {
         try {
