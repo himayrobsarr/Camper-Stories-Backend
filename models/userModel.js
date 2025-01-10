@@ -27,19 +27,6 @@ class UserModel {
                 // 3. Verificar que existe el tipo de documento
                 await this.checkDocumentType(1);
 
-                // 4. Obtener o crear CITY
-                let cityId;
-                const cityQuery = 'SELECT id FROM CITY WHERE name = ?';
-                const cityResult = await conexion.query(cityQuery, [userData.city]);
-                
-                if (cityResult.data.length > 0) {
-                    cityId = cityResult.data[0].id;
-                } else {
-                    const newCityQuery = 'INSERT INTO CITY (name) VALUES (?)';
-                    const newCityResult = await conexion.query(newCityQuery, [userData.city]);
-                    cityId = newCityResult.data.insertId;
-                }
-
                 // 5. Encriptar contraseña
                 const salt = await bcrypt.genSalt(10);
                 const hashedPassword = await bcrypt.hash(userData.password, salt);
@@ -59,9 +46,9 @@ class UserModel {
                     userData.email,
                     hashedPassword,
                     'camper',
-                    1, // document_type_id por defecto
+                    userData.document_type,
                     userData.document_number,
-                    cityId,
+                    userData.city,
                     userData.birth_date
                 ];
 
@@ -91,7 +78,7 @@ class UserModel {
                 null,                                      // image (inicialmente vacío)
                 null,                                      // main_video_url (inicialmente vacío)
                 `${userData.first_name} ${userData.last_name}`,  // full_name
-                null,                                      // profile_picture (inicialmente vacío)
+                'https://st3.depositphotos.com/6672868/13701/v/450/depositphotos_137014128-stock-illustration-user-profile-icon.jpg',                                      // profile_picture (inicialmente vacío)
                 'formacion'                                    // status inicial
                 ];
 
