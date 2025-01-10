@@ -7,7 +7,7 @@ class UserController {
     static async create(req, res) {
         try {
             // Validar campos requeridos
-            const requiredFields = ['first_name', 'last_name', 'email', 'password', 'document_number', 'birth_date', 'city_id'];
+            const requiredFields = ['first_name', 'last_name', 'email', 'password', 'document_type', 'document_number', 'birth_date', 'city'];
             for (const field of requiredFields) {
                 if (!req.body[field]) {
                     return res.status(400).json({ message: `El campo ${field} es requerido` });
