@@ -44,6 +44,36 @@ const CamperModel = {
             throw error; // Lanza el error para manejarlo en niveles superiores
         }
     },
+
+    addTrainingVideo: async (camperId, { title, video_url, platform }) => {
+        const query = `
+            INSERT INTO TRAINING_VIDEO (camper_id, title, video_url, platform)
+            VALUES (?, ?, ?, ?);
+        `;
+        try {
+            const result = await db.query(query, [camperId, title, video_url, platform]);
+            console.log("Video añadido exitosamente:", result);
+            return result; // Retorna el resultado de la inserción
+        } catch (error) {
+            console.error("Error al añadir un video de formación:", error);
+            throw error; // Lanza el error para manejarlo en niveles superiores
+        }
+    },
+
+    deleteTrainingVideo: async (camperId, videoId) => {
+        const query = `
+            DELETE FROM TRAINING_VIDEO
+            WHERE camper_id = ? AND id = ?;
+        `;
+        try {
+            const result = await db.query(query, [camperId, videoId]);
+            console.log("Video eliminado:", result);
+            return result; // Retorna el resultado de la eliminación
+        } catch (error) {
+            console.error("Error al eliminar el video de formación:", error);
+            throw error; // Lanza el error para manejarlo en niveles superiores
+        }
+    },
     
     
     // Obtener un camper por ID
