@@ -38,6 +38,7 @@ const dreamsRoutes = require("./routes/dreamRoutes");
 const meritRoutes = require("./routes/meritRoutes");
 const projectRoutes = require("./routes/projectRoutes");
 const cityRoutes = require('./routes/cityRoutes');
+const technologyRoutes = require('./routes/technologyRoutes.js');
 
 // * Configuración de los endpoints principales
 app.use("/users", userRoutes);
@@ -47,6 +48,8 @@ app.use("/dreams", dreamsRoutes);
 app.use("/merits", meritRoutes);
 app.use("/projects", projectRoutes);
 app.use('/cities', cityRoutes);
+app.use('/technology', technologyRoutes); 
+
 
 // ? Configuración del rate limiting global
 // @param windowMs: Ventana de tiempo en milisegundos
