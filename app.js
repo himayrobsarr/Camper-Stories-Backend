@@ -64,7 +64,7 @@ const limiter = rateLimit({
 // @param max: Número máximo de intentos permitidos
 const authLimiter = rateLimit({
     windowMs: 60 * 60 * 1000, // 1 hora
-    max: 100, // 5 intentos por hora
+    max: 5, // 5 intentos por hora
     message: {
         error: 'Demasiados intentos de inicio de sesión. Por favor, intente nuevamente en 1 hora'
     }
@@ -99,21 +99,26 @@ app.post('/upload', async (req, res) => {
     }
 
     const archivo = req.files.archivo;
-    const nombreArchivo = archivo.name;
-    const tipoImagen = req.body.tipo; // 'perfil', 'proyecto', 'sueño'
-    const id = req.body.id; // El ID que corresponde al usuario, proyecto o sueño
+    const tipoImagen = req.body.tipo; // 'proyecto', 'sueño', 'camper'
+    const id = req.body.id; // El ID correspondiente al proyecto, sueño o camper
+
+    // Validación para asegurarse de que el tipo de imagen es válido
+    const tiposValidos = ['proyecto', 'sueño', 'camper'];
+    if (!tiposValidos.includes(tipoImagen)) {
+        return res.status(400).send('Tipo de imagen no válido.');
+    }
 
     // Genera el nombre de la ruta en S3 según el tipo de imagen
     let rutaS3;
     switch(tipoImagen) {
-        case 'perfil':
-            rutaS3 = `profiles/${id}/${nombreArchivo}`;
-            break;
         case 'proyecto':
-            rutaS3 = `projects/${id}/${nombreArchivo}`;
+            rutaS3 = `projects/${id}`;
             break;
         case 'sueño':
-            rutaS3 = `dreams/${id}/${nombreArchivo}`;
+            rutaS3 = `dreams/${id}`;
+            break;
+        case 'camper':
+            rutaS3 = `campers/${id}`;
             break;
         default:
             return res.status(400).send('Tipo de imagen no válido.');
@@ -123,8 +128,7 @@ app.post('/upload', async (req, res) => {
         Bucket: process.env.AWS_BUCKET_NAME,
         Key: rutaS3,
         Body: archivo.data,
-        ContentType: archivo.mimetype,
-        ACL: 'public-read',  // Hace la imagen pública
+        ContentType: archivo.mimetype // Hace la imagen pública
     };
 
     try {
@@ -132,14 +136,15 @@ app.post('/upload', async (req, res) => {
         const data = await s3.upload(params).promise();
         const imageUrl = data.Location;  // URL de la imagen subida a S3
 
-        // Guardar la URL en la base de datos dependiendo del tipo de imagen
+        // Guardar solo la URL en la base de datos dependiendo del tipo de imagen
         let query;
-        if (tipoImagen === 'perfil') {
-            query = 'UPDATE users SET profile_picture = ? WHERE id = ?';
-        } else if (tipoImagen === 'proyecto') {
-            query = 'INSERT INTO projects (image_url, project_name) VALUES (?, ?)';
+
+        if (tipoImagen === 'proyecto') {
+            query = 'UPDATE PROJECT SET image = ? WHERE id = ?';  // Actualiza el campo `image` en PROJECT
         } else if (tipoImagen === 'sueño') {
-            query = 'INSERT INTO dreams (image_url, dream_name) VALUES (?, ?)';
+            query = 'UPDATE DREAMS SET image_url = ? WHERE id = ?';  // Actualiza el campo `image_url` en DREAMS
+        } else if (tipoImagen === 'camper') {
+            query = 'UPDATE CAMPER SET image_url = ? WHERE id = ?';  // Actualiza el campo `image_url` en CAMPER
         }
 
         // Ejecutar la consulta de base de datos
@@ -151,6 +156,7 @@ app.post('/upload', async (req, res) => {
         res.status(500).send('Error al subir la imagen.');
     }
 });
+
 
 
 // * Verificación inicial de la conexión a la base de datos
@@ -178,4 +184,3 @@ const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
     console.log(`Servidor ejecutándose en el puerto ${PORT}`);
 });
-
