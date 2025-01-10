@@ -8,6 +8,7 @@ const router = express.Router();
 // Rutas públicas
 router.get("/", limit.getAllCampersLimiter, CamperController.getAll); // Obtener todos los campers
 router.get("/:id", limit.getCamperByIdLimiter, CamperController.getById); // Obtener un camper por ID
+router.get("/:camperId/videos", CamperController.getVideosByCamperId);
 
 // Rutas protegidas
 router.post("/", authMiddleware, limit.createCamperLimiter, CamperController.create); // Crear un nuevo camper

@@ -12,6 +12,26 @@ const CamperController = {
         }
     },
 
+    getVideosByCamperId: async (req, res) => {
+        const camperId = parseInt(req.params.camperId, 10); // Asegurar que sea un número
+        console.log("CamperId recibido:", camperId); // Log para depuración
+
+        try {
+            const videos = await CamperModel.getVideosByCamperId(camperId);
+
+            if (!videos || videos.length === 0) {
+                console.log("No se encontraron videos para camperId:", camperId);
+                return res.status(404).json({ message: "No se encontraron videos para este camper." });
+            }
+
+            console.log("Videos encontrados:", videos);
+            return res.status(200).json(videos); // Retornar los videos en JSON
+        } catch (error) {
+            console.error("Error al obtener videos:", error.message);
+            return res.status(500).json({ message: "Error al obtener los videos. Inténtalo más tarde.", error: error.message });
+        }
+    },
+
     // Obtener un camper por ID
     getById: async (req, res) => {
         const { id } = req.params;
