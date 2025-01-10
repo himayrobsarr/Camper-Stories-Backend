@@ -27,9 +27,6 @@ class UserModel {
                 // 3. Verificar que existe el tipo de documento
                 await this.checkDocumentType(1);
 
-                // 4. Obtener cityId desde userData
-                const cityId = userData.city_id;
-
                 // 5. Encriptar contraseña
                 const salt = await bcrypt.genSalt(10);
                 const hashedPassword = await bcrypt.hash(userData.password, salt);
@@ -49,9 +46,9 @@ class UserModel {
                     userData.email,
                     hashedPassword,
                     'camper',
-                    1, // document_type_id por defecto
+                    userData.document_type,
                     userData.document_number,
-                    cityId,
+                    userData.city,
                     userData.birth_date
                 ];
 
@@ -60,29 +57,29 @@ class UserModel {
 
                 // 7. Crear registro de camper
                 const camperQuery = `
-                    INSERT INTO CAMPER (
-                        user_id,
-                        title,
-                        history,
-                        about,
-                        image,
-                        main_video_url,
-                        full_name,
-                        profile_picture,
-                        status
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                `;
-                
-                const camperParams = [
-                    userId,                                     // user_id (FK)
-                    'Nuevo Camper',                            // title (por defecto)
-                    'Bienvenido a mi perfil de Camper',        // description (por defecto)
-                    'Cuéntanos sobre ti...',                   // about (por defecto)
-                    null,                                      // image (inicialmente vacío)
-                    null,                                      // main_video_url (inicialmente vacío)
-                    `${userData.first_name} ${userData.last_name}`,  // full_name
-                    null,                                      // profile_picture (inicialmente vacío)
-                    'formacion'                                    // status inicial
+                INSERT INTO CAMPER (
+                    user_id,
+                    title,
+                    history,
+                    about,
+                    image,
+                    main_video_url,
+                    full_name,
+                    profile_picture,
+                    status
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `;
+            
+            const camperParams = [
+                userId,                                     // user_id (FK)
+                'Nuevo Camper',                            // title (por defecto)
+                'Bienvenido a mi perfil de Camper',        // description (por defecto)
+                'Cuéntanos sobre ti...',                   // about (por defecto)
+                null,                                      // image (inicialmente vacío)
+                null,                                      // main_video_url (inicialmente vacío)
+                `${userData.first_name} ${userData.last_name}`,  // full_name
+                'https://st3.depositphotos.com/6672868/13701/v/450/depositphotos_137014128-stock-illustration-user-profile-icon.jpg',                                      // profile_picture (inicialmente vacío)
+                'formacion'                                    // status inicial
                 ];
 
                 await conexion.query(camperQuery, camperParams);
