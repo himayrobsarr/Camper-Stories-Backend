@@ -59,6 +59,37 @@ const CamperProjectController = {
                 .json({ message: error.message });
         }
     },
+
+    //tecnologias de un proyecto
+    getProjectTechnologies: async (req, res) => {
+        const { projectId } = req.params;
+        
+        try {
+            // Validar que projectId sea un número válido
+            if (!projectId || isNaN(projectId)) {
+                return res.status(400).json({
+                    message: "ID de proyecto inválido",
+                    technologies: []
+                });
+            }
+
+            const technologies = await CamperProjectModel.getProjectTechnologies(projectId);
+            
+            // Siempre devolver un array, incluso si está vacío
+            res.status(200).json({
+                message: technologies.length ? "Tecnologías encontradas" : "No se encontraron tecnologías",
+                technologies: technologies
+            });
+
+        } catch (error) {
+            console.error('Error en el controlador:', error);
+            res.status(500).json({
+                message: "Error al obtener las tecnologías del proyecto",
+                error: error.message,
+                technologies: []
+            });
+        }
+    }
 };
 
 module.exports = CamperProjectController;

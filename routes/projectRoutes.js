@@ -6,6 +6,7 @@ const router = express.Router();
 
 // Rutas públicas
 router.get("/:camperid", ProjectController.getProjectsByCamperId); // Obtener un projecto por ID
+router.get("/technologies/:projectId", ProjectController.getProjectTechnologies);
 
 // Rutas protegidas
 router.post("/", authMiddleware, ProjectController.addProjectForCamper); // Crear un nuevo projecto

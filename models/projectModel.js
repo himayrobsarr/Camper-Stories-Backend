@@ -162,6 +162,35 @@ const CamperProjectModel = {
 
         return { project_id, ...updates, technologyIds };
     },
+
+    //tecnologias por proyecto
+    getProjectTechnologies: async (projectId) => {
+        const query = `
+            SELECT t.id, t.name
+            FROM PROJECT_TECHNOLOGY pt
+            JOIN TECHNOLOGY t ON pt.technology_id = t.id
+            WHERE pt.project_id = ?
+        `;
+        
+        try {
+            const result = await db.query(query, [projectId]);
+            
+            // Verificar si result.data existe y es un array
+            if (!result.data || !Array.isArray(result.data)) {
+                console.log('Resultado de la consulta:', result);
+                return [];
+            }
+
+            // Mapear los resultados si existen
+            return result.data.map(tech => ({
+                id: tech.id,
+                name: tech.name
+            }));
+        } catch (error) {
+            console.error('Error en getProjectTechnologies:', error);
+            throw error;
+        }
+    }
 };
 
 module.exports = CamperProjectModel;
