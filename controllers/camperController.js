@@ -197,6 +197,57 @@ deleteProjectFromCamper: async (req, res) => {
     }
 },
 
+//campers stados
+getGraduates: async (req, res) => {
+    try {
+        const result = await CamperModel.getGraduateCampers();
+        res.status(200).json(result.data);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ 
+            message: "Error al obtener los campers egresados", 
+            error: error.message 
+        });
+    }
+},
+
+// Get all training campers
+getTrainees: async (req, res) => {
+    try {
+        const result = await CamperModel.getTrainingCampers();
+        res.status(200).json(result.data);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ 
+            message: "Error al obtener los campers en formación", 
+            error: error.message 
+        });
+    }
+},
+
+// Update camper status
+updateStatus: async (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    try {
+        await CamperModel.updateCamperStatus(
+            id,
+            status,
+            req.user.id,
+            req.user.role
+        );
+        res.status(200).json({ 
+            message: `Estado del camper actualizado a ${status}` 
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(error.message.includes('admin') ? 403 : 500)
+            .json({ message: error.message });
+    }
+}
+
+
 };
 
 module.exports = CamperController;

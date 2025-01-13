@@ -17,6 +17,10 @@ router.get("/:id/proyects", CamperController.getProjectsByCamperId);
 router.post("/:id/proyects", CamperController.addProjectToCamper);
 router.delete("/:id/proyects/:proyect_id", CamperController.deleteProjectFromCamper);
 
+router.get('/graduates', CamperController.getGraduates);
+router.get('/trainees', CamperController.getTrainees);
+router.patch('/:id/status', CamperController.updateStatus);
+
 
 
 // Rutas protegidas

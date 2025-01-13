@@ -264,6 +264,78 @@ const CamperModel = {
             throw error;
         }
     },
+
+    //campers estados
+    getGraduateCampers: async () => {
+        const query = `
+            SELECT 
+                c.id AS camper_id,
+                c.title,
+                c.history,
+                c.about,
+                c.image,
+                c.main_video_url,
+                c.full_name,
+                c.profile_picture,
+                c.status,
+                u.birth_date,
+                u.city_id
+            FROM CAMPER c
+            INNER JOIN USER u ON c.user_id = u.id
+            WHERE c.status = 'egresado'
+        `;
+        return db.query(query);
+    },
+
+    // Get all training campers
+    getTrainingCampers: async () => {
+        const query = `
+            SELECT 
+                c.id AS camper_id,
+                c.title,
+                c.history,
+                c.about,
+                c.image,
+                c.main_video_url,
+                c.full_name,
+                c.profile_picture,
+                c.status,
+                u.birth_date,
+                u.city_id
+            FROM CAMPER c
+            INNER JOIN USER u ON c.user_id = u.id
+            WHERE c.status = 'formacion'
+        `;
+        return db.query(query);
+    },
+
+    // Update camper status
+    updateCamperStatus: async (camperId, status, requestingUserId, userRole) => {
+        // Verificar que el estado sea válido
+        const validStatuses = ['egresado', 'formacion'];
+        if (!validStatuses.includes(status)) {
+            throw new Error('Estado inválido. Debe ser "egresado" o "formacion"');
+        }
+
+        // Verificar permisos (solo admin puede cambiar el estado)
+        if (userRole !== 'admin') {
+            throw new Error('Solo los administradores pueden cambiar el estado de un camper');
+        }
+
+        const query = `
+            UPDATE CAMPER 
+            SET status = ?
+            WHERE id = ?
+        `;
+        
+        const result = await db.query(query, [status, camperId]);
+        
+        if (result.affectedRows === 0) {
+            throw new Error('Camper no encontrado');
+        }
+
+        return result;
+    }
 };
 
 module.exports = CamperModel;
