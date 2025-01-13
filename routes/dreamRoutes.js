@@ -6,6 +6,7 @@ const limit = require('../limit/dreamLimit');
 const router = express.Router();
 
 // Rutas públicas
+
 router.get("/", limit.getAllDreamsLimiter, DreamController.getAll); // Obtener todos los Dreams
 router.get("/:id", limit.getDreamByIdLimiter, DreamController.getById); // Obtener un sueño por Id
 router.post("/", limit.createDreamLimiter, authMiddleware, DreamController.create); // Crear un nuevo Dream

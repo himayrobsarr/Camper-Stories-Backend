@@ -256,7 +256,121 @@ updateStatus: async (req, res) => {
         res.status(error.message.includes('admin') ? 403 : 500)
             .json({ message: error.message });
     }
-}
+},
+
+    //obtener sueno por id de camper
+    getDreamsByCamperId: async (req, res) => {
+        const { id } = req.params; // Obtener el ID del camper de los parámetros
+
+        try {
+            // Verificar que el ID es un número válido
+            const camperId = parseInt(id, 10);
+            if (isNaN(camperId)) {
+                return res.status(400).json({ 
+                    message: "El ID del camper debe ser un número válido" 
+                });
+            }
+
+            const dreams = await CamperModel.getDreamsByCamperId(camperId);
+
+            if (!dreams || dreams.length === 0) {
+                return res.status(404).json({ 
+                    message: "No se encontraron sueños para este camper" 
+                });
+            }
+
+            return res.status(200).json(dreams);
+        } catch (error) {
+            console.error("Error al obtener los sueños del camper:", error);
+            return res.status(500).json({ 
+                message: "Error al obtener los sueños del camper",
+                error: error.message 
+            });
+        }
+    },
+
+    addDreamToCamper: async (req, res) => {
+        const { id: camperId } = req.params;
+        const dreamData = {
+            title: req.body.title,
+            description: req.body.description,
+            image_url: req.body.image_url
+        };
+
+        try {
+            // Validar que el camperId es un número válido
+            if (!Number.isInteger(parseInt(camperId))) {
+                return res.status(400).json({
+                    message: "ID de camper inválido"
+                });
+            }
+
+            const result = await CamperModel.addDreamToCamper(
+                camperId,
+                dreamData,
+                req.user.id,    // ID del usuario que hace la petición
+                req.user.role   // Rol del usuario que hace la petición
+            );
+
+            return res.status(201).json({
+                message: "Sueño agregado exitosamente",
+                dreamId: result.data.insertId
+            });
+
+        } catch (error) {
+            console.error("Error completo:", error);
+            const status = error.message.includes('permiso') ? 403 
+                        : error.message.includes('no encontrado') ? 404 
+                        : 500;
+            
+            return res.status(status).json({
+                message: "Error al agregar el sueño",
+                error: error.message
+            });
+        }
+    },
+
+    deleteDreamFromCamper: async (req, res) => {
+        const { id: camperId, dream_id: dreamId } = req.params;
+
+        // Verificar si el usuario está autenticado
+        if (!req.user) {
+            return res.status(401).json({
+                message: "Usuario no autenticado"
+            });
+        }
+
+        try {
+            // Validar que los IDs sean números válidos
+            if (!Number.isInteger(parseInt(camperId)) || !Number.isInteger(parseInt(dreamId))) {
+                return res.status(400).json({
+                    message: "IDs inválidos"
+                });
+            }
+
+            await CamperModel.deleteDreamFromCamper(
+                camperId,
+                dreamId,
+                req.user.id,    // ID del usuario que hace la petición
+                req.user.role   // Rol del usuario que hace la petición
+            );
+
+            return res.status(200).json({
+                message: "Sueño eliminado exitosamente"
+            });
+
+        } catch (error) {
+            console.error("Error completo:", error);
+            const status = error.message.includes('permiso') ? 403 
+                        : error.message.includes('no encontrado') ? 404 
+                        : 500;
+            
+            return res.status(status).json({
+                message: "Error al eliminar el sueño",
+                error: error.message
+            });
+        }
+    }
 
 };
 

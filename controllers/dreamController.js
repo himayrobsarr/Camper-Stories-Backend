@@ -74,6 +74,8 @@ const DreamController = {
             res.status(error.message.includes('permiso') ? 403 : 500).json({ message: error.message });
         }
     },
+
+
 };
 
 module.exports = DreamController;

@@ -67,7 +67,8 @@ updateDream: async (id, dreamData, requestingUserId, userRole) => {
     
         const query = "DELETE FROM DREAMS WHERE id = ?";
         return db.query(query, [id]);
-    },    
+    }, 
+    
 };
 
 module.exports = DreamModel;

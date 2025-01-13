@@ -329,7 +329,118 @@ const CamperModel = {
         }
 
         return result;
-    }
+    },
+
+    //obtener suenos por id del camper
+      getDreamsByCamperId: async (camperId) => {
+            const query = `
+                SELECT d.*
+                FROM DREAMS d
+                INNER JOIN CAMPER c ON d.camper_id = c.user_id
+                WHERE c.id = ?;
+            `;
+            
+            try {
+                const result = await db.query(query, [camperId]);
+                
+                if (!result.data || !Array.isArray(result.data)) {
+                    throw new Error("El resultado no es un array o es undefined");
+                }
+                
+                return result.data;
+            } catch (error) {
+                console.error("Error al obtener los sueños del camper:", error);
+                throw error;
+            }
+        },
+
+        addDreamToCamper: async (camperId, dreamData, requestingUserId, userRole) => {
+            // Primero verificar si el camper existe
+            const camperQuery = "SELECT user_id FROM CAMPER WHERE id = ?";
+            const camperResult = await db.query(camperQuery, [camperId]);
+    
+            if (!camperResult.data || camperResult.data.length === 0) {
+                throw new Error('Camper no encontrado');
+            }
+    
+            // Verificar permisos - solo el dueño del perfil o admin puede agregar sueños
+            const camperUserId = camperResult.data[0].user_id;
+            if (userRole !== 'admin' && requestingUserId !== camperUserId) {
+                throw new Error('No tienes permiso para agregar sueños a este perfil');
+            }
+    
+            // Validar datos requeridos
+            if (!dreamData.title || !dreamData.description) {
+                throw new Error('El título y la descripción son requeridos');
+            }
+    
+            const query = `
+                INSERT INTO DREAMS (
+                    title,
+                    description,
+                    image_url,
+                    camper_id
+                ) VALUES (?, ?, ?, ?);
+            `;
+    
+            try {
+                const result = await db.query(query, [
+                    dreamData.title,
+                    dreamData.description,
+                    dreamData.image_url || null,
+                    camperId
+                ]);
+    
+                return result;
+            } catch (error) {
+                console.error("Error al agregar el sueño:", error);
+                throw error;
+            }
+        },
+
+        deleteDreamFromCamper: async (camperId, dreamId, requestingUserId, userRole) => {
+            try {
+                // 1. Verificar si el camper existe
+                const camperQuery = "SELECT user_id FROM CAMPER WHERE id = ?";
+                const camperResult = await db.query(camperQuery, [camperId]);
+    
+                if (!camperResult.data || camperResult.data.length === 0) {
+                    throw new Error('Camper no encontrado');
+                }
+    
+                // 2. Verificar si el sueño existe y pertenece al camper
+                const dreamQuery = "SELECT * FROM DREAMS WHERE id = ? AND camper_id = ?";
+                const dreamResult = await db.query(dreamQuery, [dreamId, camperId]);
+    
+                if (!dreamResult.data || dreamResult.data.length === 0) {
+                    throw new Error('Sueño no encontrado o no pertenece a este camper');
+                }
+    
+                // 3. Verificar permisos
+                const camperUserId = camperResult.data[0].user_id;
+                if (userRole !== 'admin' && requestingUserId !== camperUserId) {
+                    throw new Error('No tienes permiso para eliminar este sueño');
+                }
+    
+                // 4. Eliminar el sueño
+                const deleteQuery = `
+                    DELETE FROM DREAMS 
+                    WHERE id = ? AND camper_id = ?
+                `;
+                
+                const result = await db.query(deleteQuery, [dreamId, camperId]);
+                
+                if (result.affectedRows === 0) {
+                    throw new Error('No se pudo eliminar el sueño');
+                }
+    
+                return result;
+            } catch (error) {
+                console.error("Error al eliminar el sueño:", error);
+                throw error;
+            }
+        }
+    
 };
 
 module.exports = CamperModel;
