@@ -7,7 +7,6 @@ const router = express.Router();
 
 // Rutas públicas
 router.get("/", limit.getAllCampersLimiter, CamperController.getAll); // Obtener todos los campers
-router.get("/:status", limit.getAllCampersLimiter, CamperController.getAllByStatus); // Obtener todos los campers por status
 router.get("/:id", limit.getCamperByIdLimiter, CamperController.getById); // Obtener un camper por ID
 
 router.get("/:camperId/videos", CamperController.getVideosByCamperId);
