@@ -15,19 +15,35 @@ const CamperProjectController = {
 
     // Agregar un nuevo proyecto para un camper
     addProjectForCamper: async (req, res) => {
-        const { camper_id } = req.params;
-        const projectData = req.body;
+        const { camper_id, projectData } = req.body; // Extrae camper_id y projectData desde el cuerpo de la solicitud
         const requestingUserId = req.user.id; // ID del usuario logueado
-
+    
         try {
+            // Validar que camper_id exista
+            if (!camper_id) {
+                throw new Error("El campo 'camper_id' es obligatorio.");
+            }
+    
+            // Validar que projectData exista
+            if (!projectData || typeof projectData !== 'object') {
+                throw new Error("El campo 'projectData' debe ser un objeto válido.");
+            }
+    
+            // Llama al modelo con los parámetros correctos
             const result = await CamperProjectModel.addProjectForCamper(camper_id, projectData, requestingUserId);
-            res.status(201).json({ message: "Proyecto agregado", project: result });
+    
+            res.status(201).json({
+                message: "Proyecto agregado",
+                project: result,
+            });
         } catch (error) {
             console.error(error);
-            res.status(500).json({ message: "Error al agregar el proyecto", error: error.message });
+            res.status(500).json({
+                message: "Error al agregar el proyecto",
+                error: error.message,
+            });
         }
-    },
-
+    },    
 
     // Actualizar un proyecto existente
     updateProjectForCamper: async (req, res) => {
