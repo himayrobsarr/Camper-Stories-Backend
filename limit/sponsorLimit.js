@@ -41,7 +41,7 @@ exports.getAllSponsorsLimiter = rateLimit({
 // Rate limiter para obtener un sponsor por ID
 exports.getSponsorByIdLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutos
-    max: 25, // Máximo 25 solicitudes por IP
+    max: 250000000000, // Máximo 25 solicitudes por IP
     handler: (req, res, next) => {
         const userAgent = req.get('User-Agent');
         if (userAgent && botUserAgents.some(bot => new RegExp(bot, 'i').test(userAgent))) {
@@ -60,7 +60,7 @@ exports.getSponsorByIdLimiter = rateLimit({
 // Rate limiter para crear un nuevo sponsor
 exports.createSponsorLimiter = rateLimit({
     windowMs: 1 * 60 * 1000, // 1 minuto
-    max: 5, // Máximo 5 solicitudes por IP
+    max: 500000000, // Máximo 5 solicitudes por IP
     handler: (req, res, next) => {
         const userAgent = req.get('User-Agent');
         if (userAgent && botUserAgents.some(bot => new RegExp(bot, 'i').test(userAgent))) {
@@ -79,7 +79,7 @@ exports.createSponsorLimiter = rateLimit({
 // Rate limiter para actualizar un sponsor existente
 exports.updateSponsorLimiter = rateLimit({
     windowMs: 10 * 60 * 1000, // 10 minutos
-    max: 10, // Máximo 10 solicitudes por IP
+    max: 100000000, // Máximo 10 solicitudes por IP
     handler: (req, res, next) => {
         const userAgent = req.get('User-Agent');
         if (userAgent && botUserAgents.some(bot => new RegExp(bot, 'i').test(userAgent))) {
@@ -98,7 +98,7 @@ exports.updateSponsorLimiter = rateLimit({
 // Rate limiter para eliminar un sponsor
 exports.deleteSponsorLimiter = rateLimit({
     windowMs: 10 * 60 * 1000, // 10 minutos
-    max: 5, // Máximo 5 solicitudes por IP
+    max: 50000000000, // Máximo 5 solicitudes por IP
     handler: (req, res, next) => {
         const userAgent = req.get('User-Agent');
         if (userAgent && botUserAgents.some(bot => new RegExp(bot, 'i').test(userAgent))) {

@@ -16,10 +16,10 @@ router.post('/:id/dreams', authMiddleware, CamperController.addDreamToCamper);
 router.delete('/:id/dreams/:dream_id', authMiddleware, CamperController.deleteDreamFromCamper);
 
 // 2. Rutas públicas generales
-router.get("/", limit.getAllCampersLimiter, CamperController.getAll);
+router.get("/",  CamperController.getAll);
 
 // 3. Rutas con parámetros
-router.get("/:id", limit.getCamperByIdLimiter, CamperController.getById);
+router.get("/:id",  CamperController.getById);
 router.get("/:camperId/videos", CamperController.getVideosByCamperId);
 router.post("/:id/videos", CamperController.addTrainingVideo);
 router.delete("/:id/videos/:video_id", CamperController.deleteTrainingVideo);
@@ -31,8 +31,8 @@ router.delete("/:id/proyects/:proyect_id", CamperController.deleteProjectFromCam
 router.patch('/:id/status', CamperController.updateStatus);
 
 // Rutas protegidas
-router.post("/", authMiddleware, limit.createCamperLimiter, CamperController.create);
-router.put("/:id", authMiddleware, limit.updateCamperLimiter, CamperController.update);
-router.delete("/:id", authMiddleware, limit.deleteCamperLimiter, CamperController.delete);
+router.post("/", authMiddleware,  CamperController.create);
+router.put("/:id", authMiddleware,  CamperController.update);
+router.delete("/:id", authMiddleware,  CamperController.delete);
 
 module.exports = router;

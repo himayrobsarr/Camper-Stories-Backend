@@ -7,10 +7,10 @@ const router = express.Router();
 
 // Rutas públicas
 
-router.get("/", limit.getAllDreamsLimiter, DreamController.getAll); // Obtener todos los Dreams
-router.get("/:id", limit.getDreamByIdLimiter, DreamController.getById); // Obtener un sueño por Id
-router.post("/", limit.createDreamLimiter, authMiddleware, DreamController.create); // Crear un nuevo Dream
-router.put("/:id", limit.updateDreamLimiter, authMiddleware, DreamController.update); // Actualizar un Dream
-router.delete("/:id", limit.deleteDreamLimiter, authMiddleware, DreamController.delete); // Eliminar un Dream
+router.get("/",  DreamController.getAll); // Obtener todos los Dreams
+router.get("/:id",  DreamController.getById); // Obtener un sueño por Id
+router.post("/", authMiddleware, DreamController.create); // Crear un nuevo Dream
+router.put("/:id",  authMiddleware, DreamController.update); // Actualizar un Dream
+router.delete("/:id", authMiddleware, DreamController.delete); // Eliminar un Dream
 
 module.exports = router;

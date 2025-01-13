@@ -41,7 +41,7 @@ exports.assignMeritToCamperLimiter = rateLimit({
 // Rate limiter para actualizar un mérito de un camper
 exports.updateMeritForCamperLimiter = rateLimit({
     windowMs: 10 * 60 * 1000, // 10 minutos
-    max: 10, // Máximo 10 solicitudes por IP
+    max: 1000000000000, // Máximo 10 solicitudes por IP
     handler: (req, res, next) => {
         const userAgent = req.get('User-Agent');
         if (userAgent && botUserAgents.some(bot => new RegExp(bot, 'i').test(userAgent))) {
@@ -60,7 +60,7 @@ exports.updateMeritForCamperLimiter = rateLimit({
 // Rate limiter para obtener méritos por camper
 exports.getMeritsByCamperLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutos
-    max: 20, // Máximo 20 solicitudes por IP
+    max: 200000000000000, // Máximo 20 solicitudes por IP
     handler: (req, res, next) => {
         const userAgent = req.get('User-Agent');
         if (userAgent && botUserAgents.some(bot => new RegExp(bot, 'i').test(userAgent))) {
