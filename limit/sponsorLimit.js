@@ -22,7 +22,7 @@ const botUserAgents = [
 // Rate limiter para obtener todos los sponsors
 exports.getAllSponsorsLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutos
-    max: 5000, // Máximo 50 solicitudes por IP
+    max: 5000000000000000000000000, // Máximo 50 solicitudes por IP
     handler: (req, res, next) => {
         const userAgent = req.get('User-Agent');
         if (userAgent && botUserAgents.some(bot => new RegExp(bot, 'i').test(userAgent))) {

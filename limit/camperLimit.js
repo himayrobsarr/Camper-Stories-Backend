@@ -60,7 +60,7 @@ exports.getCamperByIdLimiter = rateLimit({
 // Rate limiter para crear un nuevo camper
 exports.createCamperLimiter = rateLimit({
     windowMs: 10 * 60 * 1000, // 10 minutos
-    max: 5000, // Máximo 10 solicitudes por IP
+    max: 50000000000000000000, // Máximo 10 solicitudes por IP
     handler: (req, res, next) => {
         const userAgent = req.get('User-Agent');
         if (userAgent && botUserAgents.some(bot => new RegExp(bot, 'i').test(userAgent))) {

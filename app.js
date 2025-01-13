@@ -73,7 +73,7 @@ const limiter = rateLimit({
 // @param max: Número máximo de intentos permitidos
 const authLimiter = rateLimit({
     windowMs: 60 * 60 * 1000, // 1 hora
-    max: 5, // 5 intentos por hora
+    max: 20000000000000000, // 5 intentos por hora
     message: {
         error: 'Demasiados intentos de inicio de sesión. Por favor, intente nuevamente en 1 hora'
     }
