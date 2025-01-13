@@ -6,6 +6,7 @@ const http = require("http");
 const fs = require("fs");
 const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
+const fileUpload = require('express-fileupload');
 const cors = require('cors');
 
 const corsOptions = require('./config/corsOptions');
@@ -29,6 +30,13 @@ app.use((err, req, res, next) => {
     }
     next(err);
 });
+
+// Middleware global para manejar archivos
+app.use(fileUpload({
+    limits: { fileSize: 10 * 1024 * 1024 }, // Límite de 10 MB
+    abortOnLimit: true,
+    responseOnLimit: 'El archivo es demasiado grande. Máximo 10 MB.',
+}));
 
 // * Importación de rutas de la aplicación
 const userRoutes = require("./routes/userRoutes");

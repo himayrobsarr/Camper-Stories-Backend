@@ -16,6 +16,8 @@ const CamperProjectModel = {
     addProjectForCamper: async (camper_id, projectData, requestingUserId) => {
         const { title, description, image, code_url, technologyIds } = projectData;
 
+        console.log('Datos recibidos en projectData:', projectData);
+
         // Validaciones de entrada
         if (!camper_id) {
             throw new Error('El camper_id es obligatorio y debe ser proporcionado');
@@ -33,9 +35,6 @@ const CamperProjectModel = {
             throw new Error('technologyIds debe ser un arreglo de IDs');
         }
 
-
-        console.log('Datos recibidos en projectData:', projectData);
-
         // Subir la imagen a S3
 
         let imageUrl = null;
@@ -43,6 +42,7 @@ const CamperProjectModel = {
             imageUrl = await uploadToS3(image, 'proyecto', camper_id);
         }
 
+        console.log("image URL model", imageUrl)
 
         // Verificar que el usuario logueado tiene acceso al camper
         const camperQuery = `
@@ -66,7 +66,7 @@ const CamperProjectModel = {
             INSERT INTO PROJECT (title, description, image, code_url, created_at)
             VALUES (?, ?, ?, ?, NOW())
         `;
-        const projectResult = await db.query(projectQuery, [title, description, image, code_url]);
+        const projectResult = await db.query(projectQuery, [title, description, imageUrl, code_url]);
         const project_id = projectResult.data.insertId;
         console.log("Inserted Project_id:", project_id)
 
@@ -86,13 +86,13 @@ const CamperProjectModel = {
         `;
         await db.query(camperProjectQuery, [camper_id, project_id]);
 
-        return { project_id, title, description, image, code_url, technologyIds };
+        return { project_id, title, description, imageUrl, code_url, technologyIds };
     },
 
     // Actualizar un proyecto existente (solo si el proyecto pertenece al camper)
     updateProjectForCamper: async (camper_id, project_id, projectData) => {
         const { title, description, image, code_url, technologyIds } = projectData;
-
+    
         // Validaciones de entrada
         if (title && (typeof title !== 'string' || title.trim() === '')) {
             throw new Error('El título debe ser una cadena no vacía');
@@ -106,7 +106,7 @@ const CamperProjectModel = {
         if (technologyIds && !Array.isArray(technologyIds)) {
             throw new Error('technologyIds debe ser un arreglo de IDs');
         }
-
+    
         // Verificar que el proyecto pertenece al camper
         const verifyQuery = `
             SELECT *
@@ -114,18 +114,24 @@ const CamperProjectModel = {
             WHERE camper_id = ? AND project_id = ?
         `;
         const verifyResult = await db.query(verifyQuery, [camper_id, project_id]);
-
-        if (!verifyResult.length) {
+    
+        if (!verifyResult.data.length) {
             throw new Error('El proyecto no pertenece al camper especificado');
         }
-
+    
+        // Manejar la subida de nueva imagen a S3 si existe
+        let imageUrl = null;
+        if (image) {
+            imageUrl = await uploadToS3(image, 'proyecto', camper_id);
+        }
+    
         // Construir dinámicamente los campos a actualizar
         const updates = {};
         if (title) updates.title = title;
         if (description) updates.description = description;
-        if (image) updates.image = image;
+        if (imageUrl) updates.image = imageUrl; // Usar imageUrl en lugar de image
         if (code_url) updates.code_url = code_url;
-
+    
         // Actualizar el proyecto en la tabla PROJECT
         if (Object.keys(updates).length > 0) {
             const updateQuery = `
@@ -134,12 +140,12 @@ const CamperProjectModel = {
                 WHERE id = ?
             `;
             const updateResult = await db.query(updateQuery, [updates, project_id]);
-
+    
             if (updateResult.affectedRows === 0) {
                 throw new Error('El proyecto no se pudo actualizar');
             }
         }
-
+    
         // Actualizar tecnologías asociadas al proyecto
         if (technologyIds) {
             // Eliminar las tecnologías existentes para este proyecto
@@ -148,19 +154,31 @@ const CamperProjectModel = {
                 WHERE project_id = ?
             `;
             await db.query(deleteTechQuery, [project_id]);
-
+    
             // Insertar las nuevas tecnologías
             if (technologyIds.length > 0) {
-                const insertTechQuery = `
-                    INSERT INTO PROJECT_TECHNOLOGY (project_id, technology_id)
-                    VALUES ${technologyIds.map(() => '(?, ?)').join(', ')}
-                `;
-                const insertTechValues = technologyIds.flatMap(techId => [project_id, techId]);
-                await db.query(insertTechQuery, insertTechValues);
+                const techValues = technologyIds.map(techId => [project_id, techId]);
+                await db.query(
+                    'INSERT INTO PROJECT_TECHNOLOGY (project_id, technology_id) VALUES ?',
+                    [techValues]
+                );
             }
         }
-
-        return { project_id, ...updates, technologyIds };
+    
+        // Obtener el proyecto actualizado para devolverlo
+        const getProjectQuery = `
+            SELECT title, description, image, code_url
+            FROM PROJECT
+            WHERE id = ?
+        `;
+        const projectResult = await db.query(getProjectQuery, [project_id]);
+        const updatedProject = projectResult.data[0];
+    
+        return {
+            project_id,
+            ...updatedProject,
+            technologyIds: technologyIds || undefined
+        };
     },
 
     //tecnologias por proyecto

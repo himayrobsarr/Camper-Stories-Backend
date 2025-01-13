@@ -15,19 +15,32 @@ const CamperProjectController = {
 
     // Agregar un nuevo proyecto para un camper
     addProjectForCamper: async (req, res) => {
-        const { camper_id, projectData } = req.body; // Extrae camper_id y projectData desde el cuerpo de la solicitud
-        const requestingUserId = req.user.id; // ID del usuario logueado
-    
+
+        console.log('req.body:', req.body);
+        console.log('req.files:', req.files);
+
         try {
+            // Obtener los datos desde form-data
+            const camper_id = req.body.camper_id; // Recibe como un campo plano
+            const title = req.body.title;
+            const description = req.body.description;
+            const code_url = req.body.code_url;
+            const technologyIds = JSON.parse(req.body.technologyIds || '[]'); // Parsear JSON de tecnología
+            const image = req.files?.image; // El archivo de imagen, si existe
+            const requestingUserId = req.user?.id; // ID del usuario logueado (middleware de autenticación)
+    
             // Validar que camper_id exista
             if (!camper_id) {
                 throw new Error("El campo 'camper_id' es obligatorio.");
             }
     
-            // Validar que projectData exista
-            if (!projectData || typeof projectData !== 'object') {
-                throw new Error("El campo 'projectData' debe ser un objeto válido.");
+            // Validar otros campos necesarios
+            if (!title || !description) {
+                throw new Error("Los campos 'title' y 'description' son obligatorios.");
             }
+    
+            // Preparar los datos del proyecto
+            const projectData = { title, description, image, code_url, technologyIds };
     
             // Llama al modelo con los parámetros correctos
             const result = await CamperProjectModel.addProjectForCamper(camper_id, projectData, requestingUserId);
@@ -43,22 +56,55 @@ const CamperProjectController = {
                 error: error.message,
             });
         }
-    },    
+    },        
 
     // Actualizar un proyecto existente
     updateProjectForCamper: async (req, res) => {
-        const { camper_id, project_id } = req.params;
-        const projectData = req.body;
-
         try {
+            console.log('req.body:', req.body);
+            console.log('req.files:', req.files);
+    
+            // Obtener los datos
+            const camper_id = req.params.camper_id;
+            const project_id = req.params.project_id;
+
+            const title = req.body.title;
+            const description = req.body.description;
+            const code_url = req.body.code_url;
+            const technologyIds = JSON.parse(req.body.technologyIds || '[]'); // Parsear JSON de tecnología
+            const image = req.files?.image; // El archivo de imagen, si existe
+    
+            // Validar que camper_id y project_id existan
+            if (!camper_id) {
+                throw new Error("El campo 'camper_id' es obligatorio.");
+            }
+            if (!project_id) {
+                throw new Error("El campo 'project_id' es obligatorio.");
+            }
+    
+            // Validar otros campos necesarios
+            if (!title || !description) {
+                throw new Error("Los campos 'title' y 'description' son obligatorios.");
+            }
+    
+            // Preparar los datos del proyecto
+            const projectData = { title, description, image, code_url, technologyIds };
+    
+            // Llamar al modelo con los parámetros correctos
             const result = await CamperProjectModel.updateProjectForCamper(camper_id, project_id, projectData);
-            res.status(200).json({ message: "Proyecto actualizado", project: result });
+    
+            res.status(200).json({
+                message: "Proyecto actualizado",
+                project: result,
+            });
         } catch (error) {
             console.error(error);
-            res.status(error.message.includes('no pertenece') ? 403 : 500)
-                .json({ message: error.message });
+            res.status(500).json({
+                message: "Error al actualizar el proyecto",
+                error: error.message,
+            });
         }
-    },
+    },    
 
     //tecnologias de un proyecto
     getProjectTechnologies: async (req, res) => {
