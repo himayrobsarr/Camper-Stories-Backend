@@ -334,10 +334,10 @@ const CamperModel = {
     //obtener suenos por id del camper
       getDreamsByCamperId: async (camperId) => {
             const query = `
-                SELECT d.*
-                FROM DREAMS d
-                INNER JOIN CAMPER c ON d.camper_id = c.user_id
-                WHERE c.id = ?;
+              SELECT d.*
+              FROM DREAMS d
+            WHERE d.camper_id = ?;
+
             `;
             
             try {
