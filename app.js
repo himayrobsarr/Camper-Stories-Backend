@@ -103,3 +103,5 @@ const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
     console.log(`Servidor ejecutándose en el puerto ${PORT}`);
 });
+
+// Para ver todas las rutas registradas

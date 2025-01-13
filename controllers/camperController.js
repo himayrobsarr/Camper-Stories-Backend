@@ -227,6 +227,17 @@ getTrainees: async (req, res) => {
 
 // Update camper status
 updateStatus: async (req, res) => {
+    if (!req.params.id) {
+        return res.status(400).json({ 
+            message: "Se requiere el ID del camper" 
+        });
+    }
+    
+    if (!req.body.status) {
+        return res.status(400).json({ 
+            message: "Se requiere el nuevo estado del camper" 
+        });
+    }
     const { id } = req.params;
     const { status } = req.body;
 
@@ -246,7 +257,6 @@ updateStatus: async (req, res) => {
             .json({ message: error.message });
     }
 }
-
 
 };
 

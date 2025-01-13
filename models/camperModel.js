@@ -269,20 +269,17 @@ const CamperModel = {
     getGraduateCampers: async () => {
         const query = `
             SELECT 
-                c.id AS camper_id,
-                c.title,
-                c.history,
-                c.about,
-                c.image,
-                c.main_video_url,
-                c.full_name,
-                c.profile_picture,
-                c.status,
-                u.birth_date,
-                u.city_id
-            FROM CAMPER c
-            INNER JOIN USER u ON c.user_id = u.id
-            WHERE c.status = 'egresado'
+                id AS camper_id,
+                title,
+                history,
+                about,
+                image,
+                main_video_url,
+                full_name,
+                profile_picture,
+                status
+            FROM CAMPER
+            WHERE status = 'egresado'
         `;
         return db.query(query);
     },
@@ -291,20 +288,17 @@ const CamperModel = {
     getTrainingCampers: async () => {
         const query = `
             SELECT 
-                c.id AS camper_id,
-                c.title,
-                c.history,
-                c.about,
-                c.image,
-                c.main_video_url,
-                c.full_name,
-                c.profile_picture,
-                c.status,
-                u.birth_date,
-                u.city_id
-            FROM CAMPER c
-            INNER JOIN USER u ON c.user_id = u.id
-            WHERE c.status = 'formacion'
+                id AS camper_id,
+                title,
+                history,
+                about,
+                image,
+                main_video_url,
+                full_name,
+                profile_picture,
+                status
+            FROM CAMPER
+            WHERE status = 'formacion'
         `;
         return db.query(query);
     },

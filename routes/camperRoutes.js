@@ -5,10 +5,15 @@ const limit = require('../limit/camperLimit');
 
 const router = express.Router();
 
-// Rutas públicas
-router.get("/", limit.getAllCampersLimiter, CamperController.getAll); // Obtener todos los campers
-router.get("/:id", limit.getCamperByIdLimiter, CamperController.getById); // Obtener un camper por ID
+// 1. Primero las rutas específicas para estados
+router.get('/graduates', CamperController.getGraduates);  // /campers/graduates
+router.get('/trainees', CamperController.getTrainees);    // /campers/trainees
 
+// 2. Rutas públicas generales
+router.get("/", limit.getAllCampersLimiter, CamperController.getAll);
+
+// 3. Rutas con parámetros
+router.get("/:id", limit.getCamperByIdLimiter, CamperController.getById);
 router.get("/:camperId/videos", CamperController.getVideosByCamperId);
 router.post("/:id/videos", CamperController.addTrainingVideo);
 router.delete("/:id/videos/:video_id", CamperController.deleteTrainingVideo);
@@ -17,15 +22,11 @@ router.get("/:id/proyects", CamperController.getProjectsByCamperId);
 router.post("/:id/proyects", CamperController.addProjectToCamper);
 router.delete("/:id/proyects/:proyect_id", CamperController.deleteProjectFromCamper);
 
-router.get('/graduates', CamperController.getGraduates);
-router.get('/trainees', CamperController.getTrainees);
 router.patch('/:id/status', CamperController.updateStatus);
 
-
-
 // Rutas protegidas
-router.post("/", authMiddleware, limit.createCamperLimiter, CamperController.create); // Crear un nuevo camper
-router.put("/:id", authMiddleware, limit.updateCamperLimiter, CamperController.update); // Actualizar un camper existente
-router.delete("/:id", authMiddleware, limit.deleteCamperLimiter, CamperController.delete); // Eliminar un camper
+router.post("/", authMiddleware, limit.createCamperLimiter, CamperController.create);
+router.put("/:id", authMiddleware, limit.updateCamperLimiter, CamperController.update);
+router.delete("/:id", authMiddleware, limit.deleteCamperLimiter, CamperController.delete);
 
 module.exports = router;
