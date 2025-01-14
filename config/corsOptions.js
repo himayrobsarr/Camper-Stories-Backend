@@ -4,7 +4,7 @@ const corsOptions = {
         const whitelist = [
             'http://localhost:3000',    // Frontend en desarrollo
             'http://localhost:5173',    // Frontend en Vite
-            'http://tu-dominio.com'     // Tu dominio en producción
+            'https://camper-stories.vercel.app'     // Tu dominio en producción
         ];
         
         // Permitir peticiones sin origen (como las de Postman)
