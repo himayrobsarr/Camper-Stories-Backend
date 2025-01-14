@@ -1,4 +1,25 @@
 const db = require("../helpers/conexion");
+const AWS = require('aws-sdk');
+
+const s3 = new AWS.S3({
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    region: process.env.AWS_REGION
+});
+
+// Función para subir archivos a S3
+const uploadToS3 = async (file, folder, camperId) => {
+    const params = {
+        Bucket: process.env.AWS_BUCKET_NAME,
+        Key: `${folder}/${camperId}/${file.originalname}`, // Ruta en S3
+        Body: file.buffer, // El contenido del archivo
+        ContentType: file.mimetype, // Tipo de contenido
+        ACL: 'public-read' // Permisos
+    };
+
+    const uploadResult = await s3.upload(params).promise();
+    return uploadResult.Location; // Retorna la URL del archivo subido
+}
 
 const CamperModel = {
     // Obtener todos los campers
@@ -83,60 +104,62 @@ const CamperModel = {
     },
 
     // Crear un nuevo camper (solo el dueño del perfil o admin)
-    createCamper: async ({
-        user_id,
-        title,
-        description,
-        about,
-        image,
-        main_video_url,
-        document_number_id,
-        full_name,
-        age,
-        city_id,
-        profile_picture
-    }, requestingUserId, userRole) => {
-        // Verificar que solo el dueño del perfil o admin pueda crear
-        if (userRole !== 'admin' && user_id !== requestingUserId) {
-            throw new Error('No tienes permiso para crear un perfil para otro usuario');
-        }
+ createCamper: async ({
+    user_id,
+    title,
+    history,
+    about,
+    image = null,
+    main_video_url = null,
+    full_name,
+    profile_picture,
+    status = "formacion"
+}, requestingUserId, userRole) => {
+    // Verificar permisos
+    if (userRole !== 'admin' && user_id !== requestingUserId) {
+        throw new Error('No tienes permiso para crear un perfil para otro usuario');
+    }
 
-        // Validación de datos
-        if (!title || !description || !about || !full_name || !age || !city_id) {
-            throw new Error("Todos los campos son obligatorios (title, description, about, full_name, age, city_id).");
-        }
+    // Validación de datos
+    if (!title || !history || !about || !full_name) {
+        throw new Error("Los campos title, history, about y full_name son obligatorios.");
+    }
 
-        const query = `
-            INSERT INTO CAMPER (
-                user_id,
-                title,
-                description,
-                about,
-                image,
-                main_video_url,
-                document_number_id,
-                full_name,
-                age,
-                city_id,
-                profile_picture
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `;
-        const values = [
+    // Subir imagen y obtener URL si existe
+    let imageUrl = null;
+    if (image) {
+        imageUrl = await uploadToS3(image, 'camper_images', user_id);
+    }
+
+    // Crear el nuevo Camper
+    const query = `
+        INSERT INTO CAMPER (
             user_id,
             title,
             history,
             about,
             image,
             main_video_url,
-            document_number_id,
             full_name,
-            age,
-            city_id,
-            profile_picture
-        ];
+            profile_picture,
+            status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+    const values = [
+        user_id,
+        title,
+        history,
+        about,
+        imageUrl,
+        main_video_url,
+        full_name,
+        profile_picture,
+        status
+    ];
 
-        return db.query(query, values);
-    },
+    return db.query(query, values);
+},
+
 
 
     // Actualizar un camper existente (solo el dueño del perfil o admin)
@@ -146,6 +169,11 @@ const CamperModel = {
             throw new Error('No tienes permiso para actualizar este perfil');
         }
         
+        // Manejar la subida de nueva imagen a S3 si existe
+        if (camperData.image) {
+            camperData.image = await uploadToS3(camperData.image, 'camper_images', user_id);
+        }
+
         const query = "UPDATE CAMPER SET ? WHERE user_id = ?";
         const result = await db.query(query, [camperData, user_id]);
     
