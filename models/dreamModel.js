@@ -75,17 +75,37 @@ const DreamModel = {
     },  
 
 // Actualizar un sueño existente (solo el dueño del perfil o admin)
-updateDream: async (id, dreamData, requestingUserId, userRole) => {
+updateDream: async (id, dreamData, dreamFiles, requestingUserId, userRole) => {
     // Obtener el user_id del sueño a actualizar
-    const dream = await db.query("SELECT user_id FROM DREAMS WHERE id = ?", [id]);
+    const dream = await db.query("SELECT camper_id, image_url FROM DREAMS WHERE id = ?", [id]);
     
     if (!dream.data.length) {
         throw new Error('Sueño no encontrado');
     }
+    console.log("el dream en la db:",dream)
 
-    const dreamUserId = dream.data[0].user_id;
+    console.log("el nuevo dream:",dreamData)
 
+    console.log("dream files : ", dreamFiles)
+
+    let image_url =dreamFiles.image_url
+    let uploadedImageUrl = null;
+    
+        // Subir la imagen a S3 si se proporciona
+        if (image_url) {
+            console.log('Intentando subir imagen a S3...');
+            try {
+                uploadedImageUrl = await uploadToS3(image_url, "sueño", id);
+                console.log('Imagen subida exitosamente:', uploadedImageUrl);
+            } catch (error) {
+                console.error('Error al subir imagen a S3:', error);
+                throw new Error(`Error al subir la imagen: ${error.message}`);
+            }
+        }
+    dreamData.image_url = uploadedImageUrl
+    const dreamUserId = dream.data[0].camper_id;
     // Verificar permisos
+    console.log("tu rol : ", userRole)
     if (userRole !== 'admin' && requestingUserId !== dreamUserId) {
         throw new Error('No tienes permiso para actualizar este sueño');
     }
