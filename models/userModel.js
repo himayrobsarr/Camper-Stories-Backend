@@ -23,7 +23,7 @@ class UserModel {
         const documentExists = result.data[0][0].document_exists;
     
         if (documentExists === 0) {
-            throw new Error('El camper no está en la lista');
+            throw new Error('Parece que no eres camper! No puedes registrarte en Camper Stories.');
         }
     }
 
