@@ -166,23 +166,23 @@ const CamperModel = {
 
 
         //validar si hay nueva ciudad
-        let newcity_id;
         if (camperData.city_id !== undefined) {
-            newcity_id = camperData.city_id;
+            const newcity_id = camperData.city_id;
+        
+            // Consulta para obtener el user_id asociado al camper_id
+            const userIdQuery = `SELECT u.id FROM USER u JOIN CAMPER c ON u.id = c.user_id WHERE c.id = ?`;
+            const userRows = await db.query(userIdQuery, [camper_id]);
 
-            const userIdQuery = ` SELECT u.id FROM USER u JOIN CAMPER c ON u.id=c.user_id WHERE c.id = ?`
-            const user_id = await db.query(userIdQuery, [camper_id]);
-    
-            const updateCityQuery = `
-                                UPDATE USER
-                                SET city_id = ?
-                                 WHERE id = ?
-                             `;
-            const updatedCity = await db.query(updateCityQuery, [newcity_id, user_id])
-
+            const user_id = userRows.data[0].id; // Extraer el id del usuario\
+            console.log("user_id", user_id)  
+        
+            // Consulta para actualizar el city_id del usuario
+            const updateCityQuery = `UPDATE USER SET city_id = ? WHERE id = ?`;
+            const updatecityResult = await db.query(updateCityQuery, [newcity_id, user_id]);
+        
+            console.log(`city_id actualizado a ${newcity_id} para el usuario con id ${user_id}`);
         }
-
-            console.log("hola soy updates model :V", updates)
+        
         if (Object.keys(updates).length > 0) {
             const updateQuery = `
                           UPDATE CAMPER
