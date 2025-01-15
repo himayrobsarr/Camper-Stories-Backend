@@ -29,7 +29,6 @@ const MeritController = {
     updateCamperMerits: async (req, res) => {
         const { camperId } = req.params;
         const { meritIds } = req.body;
-        const userRole = req.user.role;
     
         try {
             // Validaciones básicas
