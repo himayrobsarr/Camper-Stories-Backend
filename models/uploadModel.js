@@ -25,6 +25,7 @@ const UploadModel = {
         const sanitizedFileName = sanitizeFileName(file.name);
 
         // Generar la ruta en S3 según el tipo de imagen
+        console.log("debe imprimir la ruta")
         const rutaS3 = `${tipoImagen}s/${id}/${Date.now()}-${sanitizedFileName}`;
             console.log(rutaS3);
 

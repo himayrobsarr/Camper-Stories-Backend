@@ -3,6 +3,7 @@ const DreamController = require("../controllers/dreamController");
 const authMiddleware = require('../middlewares/authMiddleware');
 const limit = require('../limit/dreamLimit');
 
+
 const router = express.Router();
 
 // Rutas públicas
