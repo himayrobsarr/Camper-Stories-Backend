@@ -14,6 +14,12 @@ class UserController {
                 }
             }
 
+            // Extraer document_number del cuerpo de la solicitud
+            const { document_number } = req.body;
+
+            // Validar si el camper existe en la lista blanca
+            await UserModel.checkDocNumInWhitelist(document_number);
+
             // Validar formato de fecha
             const birthDate = new Date(req.body.birth_date);
             if (isNaN(birthDate.getTime())) {

@@ -58,6 +58,7 @@ const CamperProjectModel = {
         `;
     const camper = await db.query(camperQuery, [camper_id]);
     const camper_user_id = camper.data[0].user_id;
+    console.log("camper:", camper, camper_id)
     console.log("user_id", camper_user_id);
     console.log("req user_id", requestingUserId);
 
