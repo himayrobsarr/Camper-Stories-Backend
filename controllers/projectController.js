@@ -74,6 +74,8 @@ const CamperProjectController = {
   updateProjectForCamper: async (req, res) => {
     try {
       console.log("req.body:", req.body);
+      console.log("req.files:", req.files);
+
 
       const camper_id = req.params.camper_id;
       const project_id = req.params.project_id;
@@ -92,6 +94,9 @@ const CamperProjectController = {
       if (req.body.description !== undefined)
         updates.description = req.body.description;
       if (req.body.code_url !== undefined) updates.code_url = req.body.code_url;
+      if (req.files && req.files.image) {  // Agregar esta validación
+        updates.image = req.files.image;    // Agregar la imagen si existe
+      }
 
       // Validar y manejar technologyIds si se envió
       //   if (req.body.technologyIds !== undefined) {
