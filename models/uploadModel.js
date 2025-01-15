@@ -15,6 +15,7 @@ const sanitizeFileName = (fileName) => {
 const UploadModel = {
     uploadToS3: async (file, tipoImagen, id) => {
         // Validar tipo de imagen
+        console.log("datos recibidos",file, tipoImagen, id)
         const tiposValidos = ['proyecto', 'sueño', 'camper'];
         if (!tiposValidos.includes(tipoImagen)) {
             throw new Error('Tipo de imagen no válido.');
