@@ -145,7 +145,10 @@ const CamperController = {
             // Llamar al modelo para actualizar el camper
             const result = await CamperModel.updateCamper(id, updates);
 
-            updates.profile_picture = req.files.profile_picture.name
+            const responseUpdates = { ...updates };
+            if (req.files && req.files.profile_picture) {
+                responseUpdates.profile_picture = req.files.profile_picture.name;
+            }
     
             res.status(200).json({
                 message: "Camper actualizado",
