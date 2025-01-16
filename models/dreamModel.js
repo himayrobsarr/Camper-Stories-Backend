@@ -25,14 +25,14 @@ const DreamModel = {
         });
 
         // Validación de permisos
-        if (userRole !== 'admin' && requestingUserId !== camper_id) {
-            console.log('Validación de permisos fallida:', {
-                userRole,
-                requestingUserId,
-                camper_id
-            });
-            throw new Error('No tienes permiso para crear un sueño para otro usuario');
-        }
+        // if (userRole !== 'admin' && requestingUserId !== camper_id) {
+        //     console.log('Validación de permisos fallida:', {
+        //         userRole,
+        //         requestingUserId,
+        //         camper_id
+        //     });
+        //     throw new Error('No tienes permiso para crear un sueño para otro usuario');
+        // }
     
         let uploadedImageUrl = null;
     
