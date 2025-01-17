@@ -162,8 +162,9 @@ const CamperModel = {
         if (camperData.full_name !== undefined) updates.full_name = camperData.full_name;
         if (camperData.about !== undefined) updates.about = camperData.about;
         if (camperData.main_video_url !== undefined) updates.main_video_url = camperData.main_video_url;
-        updates.profile_picture = imageUrl;
-
+        if (camperData.profile_picture) {
+            updates.profile_picture = imageUrl;
+        }
 
         //validar si hay nueva ciudad
         if (camperData.city_id !== undefined) {
@@ -183,18 +184,18 @@ const CamperModel = {
             console.log(`city_id actualizado a ${newcity_id} para el usuario con id ${user_id}`);
         }
         
-        if (Object.keys(updates).length > 0) {
-            const updateQuery = `
-                          UPDATE CAMPER
-                          SET ?
-                          WHERE id = ?
-                      `;
-            const updateResult = await db.query(updateQuery, [updates, camper_id]);
+        // if (Object.keys(updates).length > 0) {
+        //     const updateQuery = `
+        //                   UPDATE CAMPER
+        //                   SET ?
+        //                   WHERE id = ?
+        //               `;
+        //     const updateResult = await db.query(updateQuery, [updates, camper_id]);
 
-            if (updateResult.affectedRows === 0) {
-                throw new Error("El camper no se pudo actualizar");
-            }
-        }
+        //     if (updateResult.affectedRows === 0) {
+        //         throw new Error("El camper no se pudo actualizar");
+        //     }
+        // }
 
         const query = "UPDATE CAMPER SET ? WHERE id = ?";
         const result = await db.query(query, [updates, camper_id]);
