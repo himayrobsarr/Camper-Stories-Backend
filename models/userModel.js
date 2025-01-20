@@ -12,6 +12,21 @@ class UserModel {
         return result.data[0].id;
     }
 
+    // Validar si el camper existe
+    static async checkDocNumInWhitelist(documentNumber) {
+        const query = 'CALL CheckDocumentInWhitelist(?)';
+        const result = await conexion.query(query, [documentNumber]);
+
+        console.log("resultado:", result.data[0][0].document_exists)
+    
+        // Verificar el resultado directo
+        const documentExists = result.data[0][0].document_exists;
+    
+        if (documentExists === 0) {
+            throw new Error('Parece que no eres camper! No puedes registrarte en Camper Stories.');
+        }
+    }
+
     static async createWithRelations(userData) {
         try {
             // Iniciar transacción
@@ -69,17 +84,17 @@ class UserModel {
                     status
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
-            
-            const camperParams = [
-                userId,                                     // user_id (FK)
-                'Nuevo Camper',                            // title (por defecto)
-                'Bienvenido a mi perfil de Camper',        // description (por defecto)
-                'Cuéntanos sobre ti...',                   // about (por defecto)
-                null,                                      // image (inicialmente vacío)
-                null,                                      // main_video_url (inicialmente vacío)
-                `${userData.first_name} ${userData.last_name}`,  // full_name
-                'https://st3.depositphotos.com/6672868/13701/v/450/depositphotos_137014128-stock-illustration-user-profile-icon.jpg',                                      // profile_picture (inicialmente vacío)
-                'formacion'                                    // status inicial
+
+                const camperParams = [
+                    userId,                                     // user_id (FK)
+                    'Nuevo Camper',                            // title (por defecto)
+                    'Bienvenido a mi perfil de Camper',        // description (por defecto)
+                    'Cuéntanos sobre ti...',                   // about (por defecto)
+                    null,                                      // image (inicialmente vacío)
+                    null,                                      // main_video_url (inicialmente vacío)
+                    `${userData.first_name} ${userData.last_name}`,  // full_name
+                    'https://st3.depositphotos.com/6672868/13701/v/450/depositphotos_137014128-stock-illustration-user-profile-icon.jpg',                                      // profile_picture (inicialmente vacío)
+                    'formacion'                                    // status inicial
                 ];
 
                 await conexion.query(camperQuery, camperParams);
@@ -197,10 +212,10 @@ class UserModel {
                 const updateFields = Object.keys(userData)
                     .filter(key => userData[key] !== undefined)
                     .map(key => `${key} = ?`);
-                
+
                 const query = `UPDATE USER SET ${updateFields.join(', ')} WHERE id = ?`;
                 const values = [...Object.values(userData).filter(value => value !== undefined), id];
-                
+
                 await conexion.query(query, values);
 
                 await conexion.query('COMMIT');
@@ -217,14 +232,14 @@ class UserModel {
     static async delete(id) {
         try {
             await conexion.query('START TRANSACTION');
-            
+
             try {
                 // Primero eliminar el registro de camper
                 await conexion.query('DELETE FROM CAMPER WHERE user_id = ?', [id]);
-                
+
                 // Luego eliminar el usuario
                 await conexion.query('DELETE FROM USER WHERE id = ?', [id]);
-                
+
                 await conexion.query('COMMIT');
                 return true;
             } catch (error) {

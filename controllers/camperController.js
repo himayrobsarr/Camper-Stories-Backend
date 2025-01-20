@@ -2,13 +2,13 @@ const CamperModel = require("../models/camperModel")
 
 const CamperController = {
     // Obtener todos los campers
-    getAll: async(req, res) => {
+    getAll: async (req, res) => {
         try {
             const result = await CamperModel.getAllCampers();
             res.status(200).json(result.data);
         } catch (error) {
             console.error(error);
-            res.status(500).json({ message: "Error al obtener los campers", error: error.message});
+            res.status(500).json({ message: "Error al obtener los campers", error: error.message });
         }
     },
 
@@ -45,13 +45,13 @@ const CamperController = {
             // Llamar al modelo para insertar el video
             const result = await CamperModel.addTrainingVideo(camperId, { title, video_url, platform });
 
-            return res.status(201).json({ 
-                message: "Video añadido exitosamente.", 
+            return res.status(201).json({
+                message: "Video añadido exitosamente.",
                 videoId: result.insertId // Retorna el ID del nuevo video
             });
         } catch (error) {
             console.error("Error al añadir un video de formación:", error.message);
-            return res.status(500).json({ 
+            return res.status(500).json({
                 message: "Error al añadir el video de formación. Inténtalo más tarde.",
                 error: error.message
             });
@@ -72,7 +72,7 @@ const CamperController = {
             return res.status(200).json({ message: "Video eliminado exitosamente." });
         } catch (error) {
             console.error("Error al eliminar el video de formación:", error.message);
-            return res.status(500).json({ 
+            return res.status(500).json({
                 message: "Error al eliminar el video de formación. Inténtalo más tarde.",
                 error: error.message
             });
@@ -88,13 +88,13 @@ const CamperController = {
                 return res.status(404).json({ message: "Camper no encontrado" });
             }
             const camper = result.data[0];
-            
+
             res.status(200).json(camper);
         } catch (error) {
             res.status(500).json({ message: "Error al obtener el camper", error });
         }
     },
-    
+
     // Crear un nuevo camper
     create: async (req, res) => {
         try {
@@ -113,21 +113,57 @@ const CamperController = {
 
     // Actualizar un camper existente
     update: async (req, res) => {
-        const { id } = req.params;
         try {
-            const result = await CamperModel.updateCamper(
-                id, 
-                req.body,
-                req.user.id,
-                req.user.role
-            );
-            res.status(200).json({ message: "Camper actualizado"})
+            // Logs detallados para depuración
+            console.log("req.params:", req.params);
+            console.log("req.body:", req.body);
+            console.log("req.files:", req.files);
+    
+            const { id } = req.params;
+    
+            // Validar que el id esté presente
+            if (!id) {
+                return res.status(400).json({ message: "El parámetro 'id' es obligatorio." });
+            }
+    
+            // Crear un objeto dinámico con los campos enviados
+            const updates = {};
+            if (req.body.full_name !== undefined) updates.full_name = req.body.full_name;
+            if (req.body.city_id !== undefined) updates.city_id = req.body.city_id;
+            if (req.body.about !== undefined) updates.about = req.body.about;
+            if (req.body.main_video_url !== undefined) updates.main_video_url = req.body.main_video_url;
+            if (req.files && req.files.profile_picture) {  
+                updates.profile_picture = req.files.profile_picture;    
+            }
+            console.log("soy updates",updates)
+    
+            // Validar que al menos un campo fue enviado
+            if (Object.keys(updates).length === 0) {
+                return res.status(400).json({ message: "No se enviaron campos para actualizar." });
+            }
+    
+            // Llamar al modelo para actualizar el camper
+            const result = await CamperModel.updateCamper(id, updates);
+
+            const responseUpdates = { ...updates };
+            if (req.files && req.files.profile_picture) {
+                responseUpdates.profile_picture = req.files.profile_picture.name;
+            }
+    
+            res.status(200).json({
+                message: "Camper actualizado",
+                updateFields: updates,
+                camper: result
+            });
         } catch (error) {
-            console.log(error);
-            res.status(error.message.includes('permiso') ? 403 : 500)
-                .json({ message: error.message });
+            console.error(error);
+            res.status(500).json({
+                message: "Error al actualizar el camper",
+                error: error.message,
+            });
         }
     },
+    
 
     // Eliminar un camper
     delete: async (req, res) => {
@@ -146,117 +182,117 @@ const CamperController = {
     },
 
 
-//proyectos por camper etc
-getProjectsByCamperId: async (req, res) => {
-    const { id: camperId } = req.params;
-    try {
-        const projects = await CamperModel.getProjectsByCamperId(camperId);
-        if (!projects || projects.length === 0) {
-            return res.status(404).json({ message: "No se encontraron proyectos para este Camper." });
+    //proyectos por camper etc
+    getProjectsByCamperId: async (req, res) => {
+        const { id: camperId } = req.params;
+        try {
+            const projects = await CamperModel.getProjectsByCamperId(camperId);
+            if (!projects || projects.length === 0) {
+                return res.status(404).json({ message: "No se encontraron proyectos para este Camper." });
+            }
+            return res.status(200).json(projects);
+        } catch (error) {
+            console.error("Error al obtener proyectos:", error.message);
+            return res.status(500).json({ message: "Error al obtener proyectos." });
         }
-        return res.status(200).json(projects);
-    } catch (error) {
-        console.error("Error al obtener proyectos:", error.message);
-        return res.status(500).json({ message: "Error al obtener proyectos." });
-    }
-},
+    },
 
-addProjectToCamper: async (req, res) => {
-    const { id: camperId } = req.params;
-    const { title, description, image } = req.body;
+    addProjectToCamper: async (req, res) => {
+        const { id: camperId } = req.params;
+        const { title, description, image } = req.body;
 
-    if (!title || !description || !image) {
-        return res.status(400).json({ message: "El título, descripción e imagen son obligatorios." });
-    }
-
-    try {
-        // Llamar al modelo para añadir el proyecto
-        const projectId = await CamperModel.addProjectToCamper(camperId, { title, description, image });
-
-        return res.status(201).json({ message: "Proyecto añadido exitosamente.", projectId });
-    } catch (error) {
-        console.error("Error al añadir un proyecto:", error.message);
-        return res.status(500).json({ message: "Error al añadir el proyecto." });
-    }
-},
-
-deleteProjectFromCamper: async (req, res) => {
-    const { id: camperId, proyect_id: projectId } = req.params;
-
-    try {
-        const affectedRows = await CamperModel.deleteProjectFromCamper(camperId, projectId);
-
-        if (affectedRows === 0) {
-            return res.status(404).json({ message: "No se encontró el proyecto para eliminar." });
+        if (!title || !description || !image) {
+            return res.status(400).json({ message: "El título, descripción e imagen son obligatorios." });
         }
 
-        return res.status(200).json({ message: "Proyecto eliminado exitosamente." });
-    } catch (error) {
-        console.error("Error al eliminar el proyecto:", error.message);
-        return res.status(500).json({ message: "Error al eliminar el proyecto." });
-    }
-},
+        try {
+            // Llamar al modelo para añadir el proyecto
+            const projectId = await CamperModel.addProjectToCamper(camperId, { title, description, image });
 
-//campers stados
-getGraduates: async (req, res) => {
-    try {
-        const result = await CamperModel.getGraduateCampers();
-        res.status(200).json(result.data);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ 
-            message: "Error al obtener los campers egresados", 
-            error: error.message 
-        });
-    }
-},
+            return res.status(201).json({ message: "Proyecto añadido exitosamente.", projectId });
+        } catch (error) {
+            console.error("Error al añadir un proyecto:", error.message);
+            return res.status(500).json({ message: "Error al añadir el proyecto." });
+        }
+    },
 
-// Get all training campers
-getTrainees: async (req, res) => {
-    try {
-        const result = await CamperModel.getTrainingCampers();
-        res.status(200).json(result.data);
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ 
-            message: "Error al obtener los campers en formación", 
-            error: error.message 
-        });
-    }
-},
+    deleteProjectFromCamper: async (req, res) => {
+        const { id: camperId, proyect_id: projectId } = req.params;
 
-// Update camper status
-updateStatus: async (req, res) => {
-    if (!req.params.id) {
-        return res.status(400).json({ 
-            message: "Se requiere el ID del camper" 
-        });
-    }
-    
-    if (!req.body.status) {
-        return res.status(400).json({ 
-            message: "Se requiere el nuevo estado del camper" 
-        });
-    }
-    const { id } = req.params;
-    const { status } = req.body;
+        try {
+            const affectedRows = await CamperModel.deleteProjectFromCamper(camperId, projectId);
 
-    try {
-        await CamperModel.updateCamperStatus(
-            id,
-            status,
-            req.user.id,
-            req.user.role
-        );
-        res.status(200).json({ 
-            message: `Estado del camper actualizado a ${status}` 
-        });
-    } catch (error) {
-        console.error(error);
-        res.status(error.message.includes('admin') ? 403 : 500)
-            .json({ message: error.message });
-    }
-},
+            if (affectedRows === 0) {
+                return res.status(404).json({ message: "No se encontró el proyecto para eliminar." });
+            }
+
+            return res.status(200).json({ message: "Proyecto eliminado exitosamente." });
+        } catch (error) {
+            console.error("Error al eliminar el proyecto:", error.message);
+            return res.status(500).json({ message: "Error al eliminar el proyecto." });
+        }
+    },
+
+    //campers stados
+    getGraduates: async (req, res) => {
+        try {
+            const result = await CamperModel.getGraduateCampers();
+            res.status(200).json(result.data);
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({
+                message: "Error al obtener los campers egresados",
+                error: error.message
+            });
+        }
+    },
+
+    // Get all training campers
+    getTrainees: async (req, res) => {
+        try {
+            const result = await CamperModel.getTrainingCampers();
+            res.status(200).json(result.data);
+        } catch (error) {
+            console.error(error);
+            res.status(500).json({
+                message: "Error al obtener los campers en formación",
+                error: error.message
+            });
+        }
+    },
+
+    // Update camper status
+    updateStatus: async (req, res) => {
+        if (!req.params.id) {
+            return res.status(400).json({
+                message: "Se requiere el ID del camper"
+            });
+        }
+
+        if (!req.body.status) {
+            return res.status(400).json({
+                message: "Se requiere el nuevo estado del camper"
+            });
+        }
+        const { id } = req.params;
+        const { status } = req.body;
+
+        try {
+            await CamperModel.updateCamperStatus(
+                id,
+                status,
+                req.user.id,
+                req.user.role
+            );
+            res.status(200).json({
+                message: `Estado del camper actualizado a ${status}`
+            });
+        } catch (error) {
+            console.error(error);
+            res.status(error.message.includes('admin') ? 403 : 500)
+                .json({ message: error.message });
+        }
+    },
 
     //obtener sueno por id de camper
     getDreamsByCamperId: async (req, res) => {
@@ -266,25 +302,25 @@ updateStatus: async (req, res) => {
             // Verificar que el ID es un número válido
             const camperId = parseInt(id, 10);
             if (isNaN(camperId)) {
-                return res.status(400).json({ 
-                    message: "El ID del camper debe ser un número válido" 
+                return res.status(400).json({
+                    message: "El ID del camper debe ser un número válido"
                 });
             }
 
             const dreams = await CamperModel.getDreamsByCamperId(camperId);
 
             if (!dreams || dreams.length === 0) {
-                return res.status(404).json({ 
-                    message: "No se encontraron sueños para este camper" 
+                return res.status(404).json({
+                    message: "No se encontraron sueños para este camper"
                 });
             }
 
             return res.status(200).json(dreams);
         } catch (error) {
             console.error("Error al obtener los sueños del camper:", error);
-            return res.status(500).json({ 
+            return res.status(500).json({
                 message: "Error al obtener los sueños del camper",
-                error: error.message 
+                error: error.message
             });
         }
     },
@@ -319,10 +355,10 @@ updateStatus: async (req, res) => {
 
         } catch (error) {
             console.error("Error completo:", error);
-            const status = error.message.includes('permiso') ? 403 
-                        : error.message.includes('no encontrado') ? 404 
-                        : 500;
-            
+            const status = error.message.includes('permiso') ? 403
+                : error.message.includes('no encontrado') ? 404
+                    : 500;
+
             return res.status(status).json({
                 message: "Error al agregar el sueño",
                 error: error.message
@@ -361,10 +397,10 @@ updateStatus: async (req, res) => {
 
         } catch (error) {
             console.error("Error completo:", error);
-            const status = error.message.includes('permiso') ? 403 
-                        : error.message.includes('no encontrado') ? 404 
-                        : 500;
-            
+            const status = error.message.includes('permiso') ? 403
+                : error.message.includes('no encontrado') ? 404
+                    : 500;
+
             return res.status(status).json({
                 message: "Error al eliminar el sueño",
                 error: error.message

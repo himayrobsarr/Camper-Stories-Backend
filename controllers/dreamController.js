@@ -30,25 +30,53 @@ const DreamController = {
     // Crear un nuevo sueño
     create: async (req, res) => {
         try {
+           
+            
+            const archivo = req.files.image_url;
+
+            const dreamData = {
+                title: req.body.title,
+                description: req.body.description,
+                image_url: archivo,
+                camper_id: req.body.camper_id,
+            };
+    
+          
+    
+            if (!dreamData.title || !dreamData.description || !dreamData.camper_id) {
+                console.log('Validación fallida - campos faltantes:', dreamData);
+                return res.status(400).json({ message: "Faltan campos obligatorios." });
+            }
+    
+           
             const result = await DreamModel.createDream(
-                req.body,     // Datos del sueño (title, description, image_url, camper_id)
-                req.user.id,  // ID del usuario autenticado
-                req.user.role // Rol del usuario autenticado
+                dreamData,
+                req.user.id,
+                req.user.role
             );
-            res.status(201).json({ message: "Sueño creado", id: result.data.insertId });
+           
+    
+            res.status(201).json({
+                message: "Sueño creado",
+                dream: result.createdDream,
+            });
         } catch (error) {
-            console.error(error);
-            res.status(error.message.includes('permiso') ? 403 : 500).json({ message: error.message });
+          
+            res.status(error.message.includes('permiso') ? 403 : 500)
+               .json({ message: error.message });
         }
     },
+    
 
     // Actualizar un sueño existente
     update: async (req, res) => {
         const { id } = req.params;
+        console.log("request : ",req)
         try {
             const result = await DreamModel.updateDream(
                 id,
-                req.body,     // Datos a actualizar
+                req.body, 
+                req.files,    // Datos a actualizar
                 req.user.id,  // ID del usuario autenticado
                 req.user.role // Rol del usuario autenticado
             );

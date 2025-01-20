@@ -22,7 +22,7 @@ const botUserAgents = [
 // Rate limiter para obtener todos los campers
 exports.getAllCampersLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutos
-    max: 25, // Máximo 25 solicitudes por IP
+    max: 25000000000000000, // Máximo 25 solicitudes por IP
     handler: (req, res, next) => {
         const userAgent = req.get('User-Agent');
         if (userAgent && botUserAgents.some(bot => new RegExp(bot, 'i').test(userAgent))) {
@@ -41,7 +41,7 @@ exports.getAllCampersLimiter = rateLimit({
 // Rate limiter para obtener un camper por ID
 exports.getCamperByIdLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutos
-    max: 500, // Máximo 15 solicitudes por IP
+    max: 50000000000000000000000000, // Máximo 15 solicitudes por IP
     handler: (req, res, next) => {
         const userAgent = req.get('User-Agent');
         if (userAgent && botUserAgents.some(bot => new RegExp(bot, 'i').test(userAgent))) {
@@ -60,7 +60,7 @@ exports.getCamperByIdLimiter = rateLimit({
 // Rate limiter para crear un nuevo camper
 exports.createCamperLimiter = rateLimit({
     windowMs: 10 * 60 * 1000, // 10 minutos
-    max: 5000, // Máximo 10 solicitudes por IP
+    max: 50000000000000000000, // Máximo 10 solicitudes por IP
     handler: (req, res, next) => {
         const userAgent = req.get('User-Agent');
         if (userAgent && botUserAgents.some(bot => new RegExp(bot, 'i').test(userAgent))) {
@@ -79,7 +79,7 @@ exports.createCamperLimiter = rateLimit({
 // Rate limiter para actualizar un camper
 exports.updateCamperLimiter = rateLimit({
     windowMs: 10 * 60 * 1000, // 10 minutos
-    max: 10, // Máximo 10 solicitudes por IP
+    max: 10000000000000, // Máximo 10 solicitudes por IP
     handler: (req, res, next) => {
         const userAgent = req.get('User-Agent');
         if (userAgent && botUserAgents.some(bot => new RegExp(bot, 'i').test(userAgent))) {

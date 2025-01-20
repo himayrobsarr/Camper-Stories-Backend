@@ -1,12 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const fileUpload = require('express-fileupload');
-const { uploadImage } = require('../controllers/uploadController');
-
-// Middleware para manejar la carga de archivos
-router.use(fileUpload());
+const { uploadController } = require('../controllers/uploadController');
 
 // Ruta para subir la imagen
-router.post('/', uploadImage);
+router.post('/', uploadController);
 
 module.exports = router;

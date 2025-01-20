@@ -1,4 +1,8 @@
 const db = require("../helpers/conexion");
+const { uploadToS3 } = require("../models/uploadModel");
+
+
+
 
 const CamperModel = {
     // Obtener todos los campers
@@ -21,7 +25,7 @@ const CamperModel = {
         `;
         return db.query(query);
     },
-    
+
     getVideosByCamperId: async (camperId) => {
         const query = `
             SELECT tv.*
@@ -30,13 +34,13 @@ const CamperModel = {
         `;
         try {
             const result = await db.query(query, [camperId]);
-    
+
             // Accede a la propiedad 'data' si el resultado tiene este formato
             const rows = result.data;
             if (!rows || !Array.isArray(rows)) {
                 throw new Error("El resultado no es un array o es undefined.");
             }
-    
+
             console.log("Filas obtenidas:", rows);
             return rows; // Retorna los videos encontrados
         } catch (error) {
@@ -74,8 +78,8 @@ const CamperModel = {
             throw error; // Lanza el error para manejarlo en niveles superiores
         }
     },
-    
-    
+
+
     // Obtener un camper por ID
     getCamperById: async (id) => {
         const query = "SELECT c.*, u.birth_date, ct.name FROM CAMPER c JOIN USER u ON c.user_id = u.id JOIN CITY ct ON u.city_id = ct.id WHERE c.id = ?;";
@@ -86,74 +90,130 @@ const CamperModel = {
     createCamper: async ({
         user_id,
         title,
-        description,
+        history,
         about,
-        image,
-        main_video_url,
-        document_number_id,
+        image = null,
+        main_video_url = null,
         full_name,
-        age,
-        city_id,
-        profile_picture
+        profile_picture,
+        status = "formacion"
     }, requestingUserId, userRole) => {
-        // Verificar que solo el dueño del perfil o admin pueda crear
+        // Verificar permisos
         if (userRole !== 'admin' && user_id !== requestingUserId) {
             throw new Error('No tienes permiso para crear un perfil para otro usuario');
         }
 
         // Validación de datos
-        if (!title || !description || !about || !full_name || !age || !city_id) {
-            throw new Error("Todos los campos son obligatorios (title, description, about, full_name, age, city_id).");
+        if (!title || !history || !about || !full_name) {
+            throw new Error("Los campos title, history, about y full_name son obligatorios.");
         }
 
+        // Subir imagen y obtener URL si existe
+        let imageUrl = null;
+        if (image) {
+            imageUrl = await uploadToS3(image, 'camper_images', user_id);
+        }
+
+        // Crear el nuevo Camper
         const query = `
-            INSERT INTO CAMPER (
-                user_id,
-                title,
-                description,
-                about,
-                image,
-                main_video_url,
-                document_number_id,
-                full_name,
-                age,
-                city_id,
-                profile_picture
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `;
-        const values = [
+        INSERT INTO CAMPER (
             user_id,
             title,
             history,
             about,
             image,
             main_video_url,
-            document_number_id,
             full_name,
-            age,
-            city_id,
-            profile_picture
+            profile_picture,
+            status
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+        const values = [
+            user_id,
+            title,
+            history,
+            about,
+            imageUrl,
+            main_video_url,
+            full_name,
+            profile_picture,
+            status
         ];
 
         return db.query(query, values);
     },
 
 
+
     // Actualizar un camper existente (solo el dueño del perfil o admin)
-    updateCamper: async (user_id, camperData, requestingUserId, userRole) => {
+    updateCamper: async (camper_id, camperData, requestingUserId, userRole) => {
         // Verificar permisos
-        if (userRole !== 'admin' && user_id !== requestingUserId) {
-            throw new Error('No tienes permiso para actualizar este perfil');
+        //    if (userRole !== 'admin' && user_id !== requestingUserId) {
+        //       throw new Error('No tienes permiso para actualizar este perfil');
+        //    }
+        let imageUrl = null;
+        if (camperData.profile_picture) {
+            imageUrl = await uploadToS3(camperData.profile_picture, "camper", camper_id);
+        }
+        console.log("holi soy camper data", camperData)
+        console.log("s3", imageUrl)
+
+        const updates = {};
+        if (camperData.full_name !== undefined) updates.full_name = camperData.full_name;
+        if (camperData.about !== undefined) updates.about = camperData.about;
+        if (camperData.main_video_url !== undefined) updates.main_video_url = camperData.main_video_url;
+        if (camperData.profile_picture) {
+            updates.profile_picture = imageUrl;
+        }
+
+        //validar si hay nueva ciudad
+        if (camperData.city_id !== undefined) {
+            const newcity_id = camperData.city_id;
+        
+            // Consulta para obtener el user_id asociado al camper_id
+            const userIdQuery = `SELECT u.id FROM USER u JOIN CAMPER c ON u.id = c.user_id WHERE c.id = ?`;
+            const userRows = await db.query(userIdQuery, [camper_id]);
+
+            const user_id = userRows.data[0].id; // Extraer el id del usuario\
+            console.log("user_id", user_id)  
+        
+            // Consulta para actualizar el city_id del usuario
+            const updateCityQuery = `UPDATE USER SET city_id = ? WHERE id = ?`;
+            const updatecityResult = await db.query(updateCityQuery, [newcity_id, user_id]);
+        
+            console.log(`city_id actualizado a ${newcity_id} para el usuario con id ${user_id}`);
         }
         
-        const query = "UPDATE CAMPER SET ? WHERE user_id = ?";
-        const result = await db.query(query, [camperData, user_id]);
-    
+        // if (Object.keys(updates).length > 0) {
+        //     const updateQuery = `
+        //                   UPDATE CAMPER
+        //                   SET ?
+        //                   WHERE id = ?
+        //               `;
+        //     const updateResult = await db.query(updateQuery, [updates, camper_id]);
+
+        //     if (updateResult.affectedRows === 0) {
+        //         throw new Error("El camper no se pudo actualizar");
+        //     }
+        // }
+
+        const query = "UPDATE CAMPER SET ? WHERE id = ?";
+        const result = await db.query(query, [updates, camper_id]);
+
         if (result.affectedRows === 0) {
             throw new Error('Camper no encontrado o no actualizado');
         }
 
-        return result;
+        const getUpdateCamper = `
+            SELECT c.full_name, c.about, c.main_video_url, c.profile_picture, u.city_id FROM CAMPER c JOIN USER u ON u.id = c.user_id WHERE c.id = ?
+        `;
+        const camperResult = await db.query(getUpdateCamper, [camper_id]);
+        const updatedCamper = camperResult.data[0];
+
+        return {
+            updatedCamper
+        };
+
     },
 
     // Actualizar los datos del camper (y asociar el documento)
@@ -162,7 +222,7 @@ const CamperModel = {
         if (userRole !== 'admin' && user_id !== requestingUserId) {
             throw new Error('No tienes permiso para actualizar este perfil');
         }
-        
+
         // Actualizar los datos del usuario
         const userQuery = "UPDATE USER SET ? WHERE id = ?";
         await db.query(userQuery, [userData, user_id]);
@@ -170,7 +230,7 @@ const CamperModel = {
         // Actualizar los datos del camper
         const camperQuery = "UPDATE CAMPER SET ? WHERE user_id = ?";
         const result = await db.query(camperQuery, [camperData, user_id]);
-    
+
         if (result.affectedRows === 0) {
             throw new Error('Camper no encontrado o no actualizado');
         }
@@ -181,7 +241,7 @@ const CamperModel = {
     // Eliminar un camper
     deleteCamper: async (id, requestingUserId, userRole) => {
         const camper = await db.query("SELECT user_id FROM CAMPER WHERE id = ?", [id]);
-        
+
         if (!camper.data.length) {
             throw new Error('Camper no encontrado');
         }
@@ -228,7 +288,7 @@ const CamperModel = {
             INSERT INTO CAMPER_PROJECT (camper_id, project_id)
             VALUES (?, ?);
         `;
-        
+
         try {
             // Insertar el proyecto en la tabla PROJECT
             const projectResult = await db.query(queryProject, [title, description, image]);
@@ -321,9 +381,9 @@ const CamperModel = {
             SET status = ?
             WHERE id = ?
         `;
-        
+
         const result = await db.query(query, [status, camperId]);
-        
+
         if (result.affectedRows === 0) {
             throw new Error('Camper no encontrado');
         }
@@ -332,49 +392,49 @@ const CamperModel = {
     },
 
     //obtener suenos por id del camper
-      getDreamsByCamperId: async (camperId) => {
-            const query = `
-                SELECT d.*
-                FROM DREAMS d
-                INNER JOIN CAMPER c ON d.camper_id = c.user_id
-                WHERE c.id = ?;
-            `;
-            
-            try {
-                const result = await db.query(query, [camperId]);
-                
-                if (!result.data || !Array.isArray(result.data)) {
-                    throw new Error("El resultado no es un array o es undefined");
-                }
-                
-                return result.data;
-            } catch (error) {
-                console.error("Error al obtener los sueños del camper:", error);
-                throw error;
-            }
-        },
+    getDreamsByCamperId: async (camperId) => {
+        const query = `
+              SELECT d.*
+              FROM DREAMS d
+            WHERE d.camper_id = ?;
 
-        addDreamToCamper: async (camperId, dreamData, requestingUserId, userRole) => {
-            // Primero verificar si el camper existe
-            const camperQuery = "SELECT user_id FROM CAMPER WHERE id = ?";
-            const camperResult = await db.query(camperQuery, [camperId]);
-    
-            if (!camperResult.data || camperResult.data.length === 0) {
-                throw new Error('Camper no encontrado');
+            `;
+
+        try {
+            const result = await db.query(query, [camperId]);
+
+            if (!result.data || !Array.isArray(result.data)) {
+                throw new Error("El resultado no es un array o es undefined");
             }
-    
-            // Verificar permisos - solo el dueño del perfil o admin puede agregar sueños
-            const camperUserId = camperResult.data[0].user_id;
-            if (userRole !== 'admin' && requestingUserId !== camperUserId) {
-                throw new Error('No tienes permiso para agregar sueños a este perfil');
-            }
-    
-            // Validar datos requeridos
-            if (!dreamData.title || !dreamData.description) {
-                throw new Error('El título y la descripción son requeridos');
-            }
-    
-            const query = `
+
+            return result.data;
+        } catch (error) {
+            console.error("Error al obtener los sueños del camper:", error);
+            throw error;
+        }
+    },
+
+    addDreamToCamper: async (camperId, dreamData, requestingUserId, userRole) => {
+        // Primero verificar si el camper existe
+        const camperQuery = "SELECT user_id FROM CAMPER WHERE id = ?";
+        const camperResult = await db.query(camperQuery, [camperId]);
+
+        if (!camperResult.data || camperResult.data.length === 0) {
+            throw new Error('Camper no encontrado');
+        }
+
+        // Verificar permisos - solo el dueño del perfil o admin puede agregar sueños
+        const camperUserId = camperResult.data[0].user_id;
+        if (userRole !== 'admin' && requestingUserId !== camperUserId) {
+            throw new Error('No tienes permiso para agregar sueños a este perfil');
+        }
+
+        // Validar datos requeridos
+        if (!dreamData.title || !dreamData.description) {
+            throw new Error('El título y la descripción son requeridos');
+        }
+
+        const query = `
                 INSERT INTO DREAMS (
                     title,
                     description,
@@ -382,65 +442,65 @@ const CamperModel = {
                     camper_id
                 ) VALUES (?, ?, ?, ?);
             `;
-    
-            try {
-                const result = await db.query(query, [
-                    dreamData.title,
-                    dreamData.description,
-                    dreamData.image_url || null,
-                    camperId
-                ]);
-    
-                return result;
-            } catch (error) {
-                console.error("Error al agregar el sueño:", error);
-                throw error;
-            }
-        },
 
-        deleteDreamFromCamper: async (camperId, dreamId, requestingUserId, userRole) => {
-            try {
-                // 1. Verificar si el camper existe
-                const camperQuery = "SELECT user_id FROM CAMPER WHERE id = ?";
-                const camperResult = await db.query(camperQuery, [camperId]);
-    
-                if (!camperResult.data || camperResult.data.length === 0) {
-                    throw new Error('Camper no encontrado');
-                }
-    
-                // 2. Verificar si el sueño existe y pertenece al camper
-                const dreamQuery = "SELECT * FROM DREAMS WHERE id = ? AND camper_id = ?";
-                const dreamResult = await db.query(dreamQuery, [dreamId, camperId]);
-    
-                if (!dreamResult.data || dreamResult.data.length === 0) {
-                    throw new Error('Sueño no encontrado o no pertenece a este camper');
-                }
-    
-                // 3. Verificar permisos
-                const camperUserId = camperResult.data[0].user_id;
-                if (userRole !== 'admin' && requestingUserId !== camperUserId) {
-                    throw new Error('No tienes permiso para eliminar este sueño');
-                }
-    
-                // 4. Eliminar el sueño
-                const deleteQuery = `
+        try {
+            const result = await db.query(query, [
+                dreamData.title,
+                dreamData.description,
+                dreamData.image_url || null,
+                camperId
+            ]);
+
+            return result;
+        } catch (error) {
+            console.error("Error al agregar el sueño:", error);
+            throw error;
+        }
+    },
+
+    deleteDreamFromCamper: async (camperId, dreamId, requestingUserId, userRole) => {
+        try {
+            // 1. Verificar si el camper existe
+            const camperQuery = "SELECT user_id FROM CAMPER WHERE id = ?";
+            const camperResult = await db.query(camperQuery, [camperId]);
+
+            if (!camperResult.data || camperResult.data.length === 0) {
+                throw new Error('Camper no encontrado');
+            }
+
+            // 2. Verificar si el sueño existe y pertenece al camper
+            const dreamQuery = "SELECT * FROM DREAMS WHERE id = ? AND camper_id = ?";
+            const dreamResult = await db.query(dreamQuery, [dreamId, camperId]);
+
+            if (!dreamResult.data || dreamResult.data.length === 0) {
+                throw new Error('Sueño no encontrado o no pertenece a este camper');
+            }
+
+            // 3. Verificar permisos
+            const camperUserId = camperResult.data[0].user_id;
+            if (userRole !== 'admin' && requestingUserId !== camperUserId) {
+                throw new Error('No tienes permiso para eliminar este sueño');
+            }
+
+            // 4. Eliminar el sueño
+            const deleteQuery = `
                     DELETE FROM DREAMS 
                     WHERE id = ? AND camper_id = ?
                 `;
-                
-                const result = await db.query(deleteQuery, [dreamId, camperId]);
-                
-                if (result.affectedRows === 0) {
-                    throw new Error('No se pudo eliminar el sueño');
-                }
-    
-                return result;
-            } catch (error) {
-                console.error("Error al eliminar el sueño:", error);
-                throw error;
+
+            const result = await db.query(deleteQuery, [dreamId, camperId]);
+
+            if (result.affectedRows === 0) {
+                throw new Error('No se pudo eliminar el sueño');
             }
+
+            return result;
+        } catch (error) {
+            console.error("Error al eliminar el sueño:", error);
+            throw error;
         }
-    
+    }
+
 };
 
 module.exports = CamperModel;
