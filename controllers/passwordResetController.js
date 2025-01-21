@@ -9,20 +9,30 @@ class PasswordResetController {
         const { email } = req.body;
 
         try {
-            // Verificar si el usuario existe
-            const user = await UserModel.findByEmail(email);
-            if (!user) {
+            // Verificar si el usuario existe y obtener sus datos
+            const userResult = await conexion.query('SELECT id, email FROM USER WHERE email = ?', [email]);
+            console.log('Resultado de la consulta:', userResult);
+
+            if (!userResult.data || userResult.data.length === 0) {
                 return res.status(404).json({ message: 'Correo no registrado' });
             }
 
-            // Generar un token único
+            const user = userResult.data[0];
+            console.log('Usuario encontrado:', user);
+
+            // Generar token
             const token = crypto.randomBytes(32).toString('hex');
-            const query = `INSERT INTO password_reset_tokens (user_id, token) VALUES (?, ?)`;
-            await conexion.query(query, [user.id, token]);
+
+            // Limpiar tokens antiguos primero
+            await conexion.query('DELETE FROM password_reset_tokens WHERE user_id = ?', [user.id]);
+
+            // Insertar nuevo token
+            const insertQuery = `INSERT INTO password_reset_tokens (user_id, token) VALUES (?, ?)`;
+            await conexion.query(insertQuery, [user.id, token]);
 
             // Configuración para envío de correo
             const transporter = nodemailer.createTransport({
-                service: 'Gmail', // Cambiar si usas otro servicio
+                service: 'Gmail',
                 auth: {
                     user: process.env.EMAIL_USER,
                     pass: process.env.EMAIL_PASS,
@@ -41,8 +51,12 @@ class PasswordResetController {
 
             res.json({ message: 'Correo enviado con el enlace de recuperación' });
         } catch (error) {
-            console.error('Error en requestPasswordReset:', error);
-            res.status(500).json({ message: 'Error en el servidor' });
+            console.error('Error detallado:', error);
+            res.status(500).json({ 
+                message: 'Error en el servidor',
+                error: error.message,
+                details: error.stack
+            });
         }
     }
 
