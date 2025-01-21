@@ -3,7 +3,7 @@ const connection = require('../helpers/conexion');
 const CityModel = {
     getAllCities: async () => {
         try {
-            const query = 'SELECT id, name FROM CITY';
+            const query = 'CALL GetCitiesWithDept()';
             const result = await connection.query(query);
             
             if (result && result.data) {
@@ -15,6 +15,9 @@ const CityModel = {
             throw new Error(`Error al obtener las ciudades: ${error.message}`);
         }
     }
+
 };
+
+
 
 module.exports = CityModel;
