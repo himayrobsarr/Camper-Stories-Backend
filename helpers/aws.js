@@ -15,12 +15,21 @@ const s3 = new AWS.S3();
  */
 const deleteFromS3 = async (imageUrl) => {
     const bucketName = process.env.AWS_BUCKET_NAME;
+    console.log("URL de imagen recibida:", imageUrl);
 
-    // Extraer el key (ruta del archivo dentro del bucket)
-    const key = imageUrl.split(`${bucketName}/`)[1];
-    if (!key) {
-        throw new Error("No se pudo extraer el key de la URL");
+    // Extraer el key usando un enfoque confiable
+    const baseUrl = `https://${bucketName}.s3.${process.env.AWS_REGION}.amazonaws.com/`;
+    if (!imageUrl.startsWith(baseUrl)) {
+        throw new Error("La URL no corresponde al bucket configurado.");
     }
+
+    // Extraer el key eliminando la base URL
+    const key = imageUrl.replace(baseUrl, "");
+    if (!key) {
+        throw new Error("No se pudo extraer el key de la URL.");
+    }
+
+    console.log("Key extraída:", key);
 
     const params = {
         Bucket: bucketName,

@@ -157,7 +157,6 @@ const CamperModel = {
 
     updateCamper: async (camper_id, camperData, requestingUserId, userRole) => {
         let imageUrl = null;
-
         // Si hay una nueva imagen, elimina la anterior
         if (camperData.profile_picture) {
             // Obtener la imagen actual del camper
