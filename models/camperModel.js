@@ -41,7 +41,7 @@ const CamperModel = {
                 throw new Error("El resultado no es un array o es undefined.");
             }
 
-            console.log("Filas obtenidas:", rows);
+             // console.log("Filas obtenidas:", rows);
             return rows; // Retorna los videos encontrados
         } catch (error) {
             console.error("Error al obtener los videos por camper_id:", error);
@@ -56,7 +56,7 @@ const CamperModel = {
         `;
         try {
             const result = await db.query(query, [camperId, title, video_url, platform]);
-            console.log("Video añadido exitosamente:", result);
+             // console.log("Video añadido exitosamente:", result);
             return result; // Retorna el resultado de la inserción
         } catch (error) {
             console.error("Error al añadir un video de formación:", error);
@@ -71,7 +71,7 @@ const CamperModel = {
         `;
         try {
             const result = await db.query(query, [camperId, videoId]);
-            console.log("Video eliminado:", result);
+             // console.log("Video eliminado:", result);
             return result; // Retorna el resultado de la eliminación
         } catch (error) {
             console.error("Error al eliminar el video de formación:", error);
@@ -168,8 +168,8 @@ const CamperModel = {
         if (camperData.profile_picture) {
             imageUrl = await uploadToS3(camperData.profile_picture, "camper", camper_id);
         }
-        console.log("holi soy camper data", camperData)
-        console.log("s3", imageUrl)
+         // console.log("holi soy camper data", camperData)
+         // console.log("s3", imageUrl)
 
         const updates = {};
         if (camperData.full_name !== undefined) updates.full_name = camperData.full_name;
@@ -188,13 +188,13 @@ const CamperModel = {
             const userRows = await db.query(userIdQuery, [camper_id]);
 
             const user_id = userRows.data[0].id; // Extraer el id del usuario\
-            console.log("user_id", user_id)
+             // console.log("user_id", user_id)
 
             // Consulta para actualizar el city_id del usuario
             const updateCityQuery = `UPDATE USER SET city_id = ? WHERE id = ?`;
             const updatecityResult = await db.query(updateCityQuery, [newcity_id, user_id]);
 
-            console.log(`city_id actualizado a ${newcity_id} para el usuario con id ${user_id}`);
+             // console.log(`city_id actualizado a ${newcity_id} para el usuario con id ${user_id}`);
         }
 
         // if (Object.keys(updates).length > 0) {
@@ -278,12 +278,12 @@ const CamperModel = {
         try {
             const result = await db.query(query, [camperId]);
 
-            console.log("Resultado de la consulta:", result); // Log para verificar la estructura
+             // console.log("Resultado de la consulta:", result); // Log para verificar la estructura
 
             // Si el resultado es un objeto, debemos extraer la propiedad que contiene los datos.
             const rows = Array.isArray(result) ? result : result.data || result[0];
 
-            console.log("Filas obtenidas:", rows); // Log de los resultados
+             // console.log("Filas obtenidas:", rows); // Log de los resultados
 
             return rows;
         } catch (error) {

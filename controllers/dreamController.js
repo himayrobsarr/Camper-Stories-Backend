@@ -44,7 +44,7 @@ const DreamController = {
           
     
             if (!dreamData.title || !dreamData.description || !dreamData.camper_id) {
-                console.log('Validación fallida - campos faltantes:', dreamData);
+                 // console.log('Validación fallida - campos faltantes:', dreamData);
                 return res.status(400).json({ message: "Faltan campos obligatorios." });
             }
     
@@ -71,7 +71,7 @@ const DreamController = {
     // Actualizar un sueño existente
     update: async (req, res) => {
         const { id } = req.params;
-        console.log("request : ",req)
+         // console.log("request : ",req)
         try {
             const result = await DreamModel.updateDream(
                 id,

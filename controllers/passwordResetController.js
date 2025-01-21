@@ -11,14 +11,14 @@ class PasswordResetController {
         try {
             // Verificar si el usuario existe y obtener sus datos
             const userResult = await conexion.query('SELECT id, email FROM USER WHERE email = ?', [email]);
-            console.log('Resultado de la consulta:', userResult);
+             // console.log('Resultado de la consulta:', userResult);
 
             if (!userResult.data || userResult.data.length === 0) {
                 return res.status(404).json({ message: 'Correo no registrado' });
             }
 
             const user = userResult.data[0];
-            console.log('Usuario encontrado:', user);
+             // console.log('Usuario encontrado:', user);
 
             // Generar token
             const token = crypto.randomBytes(32).toString('hex');

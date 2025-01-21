@@ -16,7 +16,7 @@ const CamperProjectModel = {
   addProjectForCamper: async (camper_id, projectData, requestingUserId) => {
     const { title, description, image, code_url, technologyIds } = projectData;
 
-    console.log("Datos recibidos en projectData:", projectData);
+     // console.log("Datos recibidos en projectData:", projectData);
 
     // Validaciones de entrada
     if (!camper_id) {
@@ -50,7 +50,7 @@ const CamperProjectModel = {
       imageUrl = await uploadToS3(image, "proyecto", camper_id);
     }
 
-    console.log("image URL model", imageUrl);
+     // console.log("image URL model", imageUrl);
 
     // Verificar que el usuario logueado tiene acceso al camper
     const camperQuery = `
@@ -58,9 +58,9 @@ const CamperProjectModel = {
         `;
     const camper = await db.query(camperQuery, [camper_id]);
     const camper_user_id = camper.data[0].user_id;
-    console.log("camper:", camper, camper_id)
-    console.log("user_id", camper_user_id);
-    console.log("req user_id", requestingUserId);
+     // console.log("camper:", camper, camper_id)
+     // console.log("user_id", camper_user_id);
+     // console.log("req user_id", requestingUserId);
 
     if (!camper_user_id) {
       throw new Error("No se encontró un camper con el ID proporcionado");
@@ -82,7 +82,7 @@ const CamperProjectModel = {
       code_url,
     ]);
     const project_id = projectResult.data.insertId;
-    console.log("Inserted Project_id:", project_id);
+     // console.log("Inserted Project_id:", project_id);
 
     // Insertar tecnologías en la tabla PROJECT_TECHNOLOGY
     if (technologyIds && technologyIds.length > 0) {
@@ -226,7 +226,7 @@ const CamperProjectModel = {
 
       // Verificar si result.data existe y es un array
       if (!result.data || !Array.isArray(result.data)) {
-        console.log("Resultado de la consulta:", result);
+         // console.log("Resultado de la consulta:", result);
         return [];
       }
 

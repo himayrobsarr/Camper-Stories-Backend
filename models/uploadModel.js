@@ -15,7 +15,7 @@ const sanitizeFileName = (fileName) => {
 const UploadModel = {
     uploadToS3: async (file, tipoImagen, id) => {
         // Validar tipo de imagen
-        console.log("datos recibidos",file, tipoImagen, id)
+         // console.log("datos recibidos",file, tipoImagen, id)
         const tiposValidos = ['proyecto', 'sueño', 'camper'];
         if (!tiposValidos.includes(tipoImagen)) {
             throw new Error('Tipo de imagen no válido.');
@@ -25,9 +25,9 @@ const UploadModel = {
         const sanitizedFileName = sanitizeFileName(file.name);
 
         // Generar la ruta en S3 según el tipo de imagen
-        console.log("debe imprimir la ruta")
+         // console.log("debe imprimir la ruta")
         const rutaS3 = `${tipoImagen}s/${id}/${Date.now()}-${sanitizedFileName}`;
-            console.log(rutaS3);
+             // console.log(rutaS3);
 
         // Configuración de parámetros para S3
         const params = {
@@ -41,7 +41,7 @@ const UploadModel = {
             // Subir el archivo a S3
             await s3.upload(params).promise();
             const finalurl = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${rutaS3}`;
-            console.log("url AWS:", finalurl);
+             // console.log("url AWS:", finalurl);
             
             // Construir y retornar la URL
             return finalurl
