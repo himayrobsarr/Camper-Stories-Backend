@@ -7,7 +7,7 @@ const CityModel = {
             const result = await connection.query(query);
             
             if (result && result.data) {
-                return { data: result.data };
+                return { data: result.data[0] };
             }
             
             throw new Error('No se pudieron obtener los datos');
