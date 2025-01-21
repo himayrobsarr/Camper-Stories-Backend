@@ -48,6 +48,9 @@ const projectRoutes = require("./routes/projectRoutes");
 const cityRoutes = require('./routes/cityRoutes');
 const technologyRoutes = require('./routes/technologyRoutes.js');
 const uploadRoutes = require('./routes/uploadRoutes');
+const passwordResetRoutes = require('./routes/passwordResetRoutes');
+
+
 
 // * Configuración de los endpoints principales
 app.use("/users", userRoutes);
@@ -59,6 +62,7 @@ app.use("/projects", projectRoutes);
 app.use('/cities', cityRoutes);
 app.use('/technology', technologyRoutes); 
 app.use('/upload', uploadRoutes);
+app.use('/password-reset', passwordResetRoutes);
 
 // ? Configuración del rate limiting global
 // @param windowMs: Ventana de tiempo en milisegundos
