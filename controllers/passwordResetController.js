@@ -39,7 +39,7 @@ class PasswordResetController {
                 },
             });
 
-            const resetLink = `${process.env.FRONTEND_URL}/reset-password/${token}`;
+            const resetLink = `${process.env.FRONTEND_URL}campers/forgetPassword/${token}`;
 
             // Enviar correo
             await transporter.sendMail({
