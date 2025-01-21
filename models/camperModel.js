@@ -82,7 +82,20 @@ const CamperModel = {
 
     // Obtener un camper por ID
     getCamperById: async (id) => {
-        const query = "SELECT c.*, u.birth_date, ct.name as city FROM CAMPER c JOIN USER u ON c.user_id = u.id JOIN CITY ct ON u.city_id = ct.id WHERE c.id = ?;";
+        const query = `
+            SELECT 
+                c.*, 
+                u.birth_date, 
+                CONCAT(ct.name, ', ', d.name) AS city 
+            FROM CAMPER c
+            JOIN USER u 
+                ON c.user_id = u.id
+            JOIN CITY ct 
+                ON u.city_id = ct.id
+            JOIN DEPARTAMENT d 
+                ON d.id = ct.departament_id
+            WHERE c.id = ?;
+        `;
         return db.query(query, [id]);
     },
 
