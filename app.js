@@ -9,6 +9,7 @@ const rateLimit = require('express-rate-limit');
 const fileUpload = require('express-fileupload');
 const cors = require('cors');
 
+
 const corsOptions = require('./config/corsOptions');
 
 // * Importación de la conexión a la base de datos
@@ -19,6 +20,7 @@ const app = express();
 const server = http.createServer(app);
 
 // * Middleware para procesar datos JSON en las peticiones
+app.set('trust proxy', 1);
 app.use(express.json());
 app.use(cors(corsOptions));
 
