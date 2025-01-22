@@ -56,7 +56,7 @@ class UserController {
             
             // Buscar usuario por email
             const user = await UserModel.findByEmail(email);
-            console.log("user:", user);          
+             // console.log("user:", user);          
             
             if (!user) {
                 return res.status(401).json({ message: 'Credenciales inválidas' });

@@ -18,8 +18,8 @@ const CamperProjectController = {
 
   // Agregar un nuevo proyecto para un camper
   addProjectForCamper: async (req, res) => {
-    console.log("req.body:", req.body);
-    console.log("req.files:", req.files);
+     // console.log("req.body:", req.body);
+     // console.log("req.files:", req.files);
 
     try {
       // Obtener los datos desde form-data
@@ -73,8 +73,8 @@ const CamperProjectController = {
   // Actualizar un proyecto existente
   updateProjectForCamper: async (req, res) => {
     try {
-      console.log("req.body:", req.body);
-      console.log("req.files:", req.files);
+       // console.log("req.body:", req.body);
+       // console.log("req.files:", req.files);
 
 
       const camper_id = req.params.camper_id;

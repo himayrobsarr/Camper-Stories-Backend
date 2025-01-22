@@ -15,7 +15,7 @@ const DreamModel = {
     },
 
     createDream: async ({ title, description, image_url, camper_id }, requestingUserId, userRole) => {
-        console.log('Iniciando createDream con datos:', {
+         /* console.log('Iniciando createDream con datos:', {
             title,
             description,
             imageUrlProvided: !!image_url,
@@ -23,10 +23,11 @@ const DreamModel = {
             requestingUserId,
             userRole
         });
+        */
 
         // Validación de permisos
         // if (userRole !== 'admin' && requestingUserId !== camper_id) {
-        //     console.log('Validación de permisos fallida:', {
+        //      // console.log('Validación de permisos fallida:', {
         //         userRole,
         //         requestingUserId,
         //         camper_id
@@ -38,10 +39,10 @@ const DreamModel = {
     
         // Subir la imagen a S3 si se proporciona
         if (image_url) {
-            console.log('Intentando subir imagen a S3...');
+             // console.log('Intentando subir imagen a S3...');
             try {
                 uploadedImageUrl = await uploadToS3(image_url, "sueño", camper_id);
-                console.log('Imagen subida exitosamente:', uploadedImageUrl);
+                 // console.log('Imagen subida exitosamente:', uploadedImageUrl);
             } catch (error) {
                 console.error('Error al subir imagen a S3:', error);
                 throw new Error(`Error al subir la imagen: ${error.message}`);
@@ -55,7 +56,7 @@ const DreamModel = {
         `;
     
         const result = await db.query(query, [title, description, uploadedImageUrl, camper_id]);
-        console.log("result:", result.data.insertId)
+         // console.log("result:", result.data.insertId)
     
         if (result.affectedRows === 0) {
             throw new Error('No se pudo crear el sueño');
@@ -82,21 +83,21 @@ updateDream: async (id, dreamData, dreamFiles, requestingUserId, userRole) => {
     if (!dream.data.length) {
         throw new Error('Sueño no encontrado');
     }
-    console.log("el dream en la db:",dream)
+     // console.log("el dream en la db:",dream)
 
-    console.log("el nuevo dream:",dreamData)
+     // console.log("el nuevo dream:",dreamData)
 
-    console.log("dream files : ", dreamFiles)
+     // console.log("dream files : ", dreamFiles)
 
     let image_url =dreamFiles.image_url
     let uploadedImageUrl = null;
     
         // Subir la imagen a S3 si se proporciona
         if (image_url) {
-            console.log('Intentando subir imagen a S3...');
+             // console.log('Intentando subir imagen a S3...');
             try {
                 uploadedImageUrl = await uploadToS3(image_url, "sueño", id);
-                console.log('Imagen subida exitosamente:', uploadedImageUrl);
+                 // console.log('Imagen subida exitosamente:', uploadedImageUrl);
             } catch (error) {
                 console.error('Error al subir imagen a S3:', error);
                 throw new Error(`Error al subir la imagen: ${error.message}`);
@@ -105,7 +106,7 @@ updateDream: async (id, dreamData, dreamFiles, requestingUserId, userRole) => {
     dreamData.image_url = uploadedImageUrl
     const dreamUserId = dream.data[0].camper_id;
     // Verificar permisos
-    console.log("tu rol : ", userRole)
+     // console.log("tu rol : ", userRole)
     if (userRole !== 'admin' && requestingUserId !== dreamUserId) {
         throw new Error('No tienes permiso para actualizar este sueño');
     }

@@ -1,8 +1,6 @@
 const db = require("../helpers/conexion");
 const { uploadToS3 } = require("../models/uploadModel");
-
-
-
+const { deleteFromS3 } = require('../helpers/aws'); // Importar la función para eliminar en S3
 
 const CamperModel = {
     // Obtener todos los campers
@@ -41,7 +39,7 @@ const CamperModel = {
                 throw new Error("El resultado no es un array o es undefined.");
             }
 
-            console.log("Filas obtenidas:", rows);
+            // console.log("Filas obtenidas:", rows);
             return rows; // Retorna los videos encontrados
         } catch (error) {
             console.error("Error al obtener los videos por camper_id:", error);
@@ -56,7 +54,7 @@ const CamperModel = {
         `;
         try {
             const result = await db.query(query, [camperId, title, video_url, platform]);
-            console.log("Video añadido exitosamente:", result);
+            // console.log("Video añadido exitosamente:", result);
             return result; // Retorna el resultado de la inserción
         } catch (error) {
             console.error("Error al añadir un video de formación:", error);
@@ -71,7 +69,7 @@ const CamperModel = {
         `;
         try {
             const result = await db.query(query, [camperId, videoId]);
-            console.log("Video eliminado:", result);
+            // console.log("Video eliminado:", result);
             return result; // Retorna el resultado de la eliminación
         } catch (error) {
             console.error("Error al eliminar el video de formación:", error);
@@ -157,59 +155,38 @@ const CamperModel = {
     },
 
 
-
-    // Actualizar un camper existente (solo el dueño del perfil o admin)
     updateCamper: async (camper_id, camperData, requestingUserId, userRole) => {
-        // Verificar permisos
-        //    if (userRole !== 'admin' && user_id !== requestingUserId) {
-        //       throw new Error('No tienes permiso para actualizar este perfil');
-        //    }
         let imageUrl = null;
+        // Si hay una nueva imagen, elimina la anterior
         if (camperData.profile_picture) {
+            // Obtener la imagen actual del camper
+            const queryGetOldPicture = `SELECT profile_picture FROM CAMPER WHERE id = ?`;
+            const oldPictureResult = await db.query(queryGetOldPicture, [camper_id]);
+
+            if (oldPictureResult.data.length > 0) {
+                const oldPictureUrl = oldPictureResult.data[0].profile_picture;
+
+                if (oldPictureUrl) {
+                    try {
+                        await deleteFromS3(oldPictureUrl); // Eliminar la imagen anterior
+                        console.log("Imagen anterior eliminada correctamente.");
+                    } catch (error) {
+                        console.error("Error al eliminar la imagen anterior:", error);
+                    }
+                }
+            }
+
+            // Subir la nueva imagen a S3
             imageUrl = await uploadToS3(camperData.profile_picture, "camper", camper_id);
         }
-        console.log("holi soy camper data", camperData)
-        console.log("s3", imageUrl)
 
         const updates = {};
         if (camperData.full_name !== undefined) updates.full_name = camperData.full_name;
         if (camperData.about !== undefined) updates.about = camperData.about;
         if (camperData.main_video_url !== undefined) updates.main_video_url = camperData.main_video_url;
-        if (camperData.profile_picture) {
-            updates.profile_picture = imageUrl;
-        }
+        if (imageUrl) updates.profile_picture = imageUrl;
 
-        //validar si hay nueva ciudad
-        if (camperData.city_id !== undefined) {
-            const newcity_id = camperData.city_id;
-
-            // Consulta para obtener el user_id asociado al camper_id
-            const userIdQuery = `SELECT u.id FROM USER u JOIN CAMPER c ON u.id = c.user_id WHERE c.id = ?`;
-            const userRows = await db.query(userIdQuery, [camper_id]);
-
-            const user_id = userRows.data[0].id; // Extraer el id del usuario\
-            console.log("user_id", user_id)
-
-            // Consulta para actualizar el city_id del usuario
-            const updateCityQuery = `UPDATE USER SET city_id = ? WHERE id = ?`;
-            const updatecityResult = await db.query(updateCityQuery, [newcity_id, user_id]);
-
-            console.log(`city_id actualizado a ${newcity_id} para el usuario con id ${user_id}`);
-        }
-
-        // if (Object.keys(updates).length > 0) {
-        //     const updateQuery = `
-        //                   UPDATE CAMPER
-        //                   SET ?
-        //                   WHERE id = ?
-        //               `;
-        //     const updateResult = await db.query(updateQuery, [updates, camper_id]);
-
-        //     if (updateResult.affectedRows === 0) {
-        //         throw new Error("El camper no se pudo actualizar");
-        //     }
-        // }
-
+        // Actualizar datos del camper
         const query = "UPDATE CAMPER SET ? WHERE id = ?";
         const result = await db.query(query, [updates, camper_id]);
 
@@ -217,17 +194,21 @@ const CamperModel = {
             throw new Error('Camper no encontrado o no actualizado');
         }
 
+        // Recuperar datos actualizados
         const getUpdateCamper = `
-            SELECT c.full_name, c.about, c.main_video_url, c.profile_picture, u.city_id FROM CAMPER c JOIN USER u ON u.id = c.user_id WHERE c.id = ?
+            SELECT c.full_name, c.about, c.main_video_url, c.profile_picture, u.city_id 
+            FROM CAMPER c 
+            JOIN USER u ON u.id = c.user_id 
+            WHERE c.id = ?
         `;
         const camperResult = await db.query(getUpdateCamper, [camper_id]);
         const updatedCamper = camperResult.data[0];
 
         return {
-            updatedCamper
+            updatedCamper,
         };
-
     },
+
 
     // Actualizar los datos del camper (y asociar el documento)
     updateCamperAndUser: async (user_id, camperData, userData, requestingUserId, userRole) => {
@@ -278,12 +259,12 @@ const CamperModel = {
         try {
             const result = await db.query(query, [camperId]);
 
-            console.log("Resultado de la consulta:", result); // Log para verificar la estructura
+            // console.log("Resultado de la consulta:", result); // Log para verificar la estructura
 
             // Si el resultado es un objeto, debemos extraer la propiedad que contiene los datos.
             const rows = Array.isArray(result) ? result : result.data || result[0];
 
-            console.log("Filas obtenidas:", rows); // Log de los resultados
+            // console.log("Filas obtenidas:", rows); // Log de los resultados
 
             return rows;
         } catch (error) {
