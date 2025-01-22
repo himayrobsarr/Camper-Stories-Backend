@@ -180,6 +180,19 @@ const CamperModel = {
             imageUrl = await uploadToS3(camperData.profile_picture, "camper", camper_id);
         }
 
+        //validar si hay nueva ciudad
+        if (camperData.city_id !== undefined) {
+            const newcity_id = camperData.city_id;
+            // Consulta para obtener el user_id asociado al camper_id
+            const userIdQuery = `SELECT u.id FROM USER u JOIN CAMPER c ON u.id = c.user_id WHERE c.id = ?`;
+            const userRows = await db.query(userIdQuery, [camper_id]);
+            const user_id = userRows.data[0].id; // Extraer el id del usuario\
+             // console.log("user_id", user_id)
+            // Consulta para actualizar el city_id del usuario
+            const updateCityQuery = `UPDATE USER SET city_id = ? WHERE id = ?`;
+            const updatecityResult = await db.query(updateCityQuery, [newcity_id, user_id]);
+        }
+        
         const updates = {};
         if (camperData.full_name !== undefined) updates.full_name = camperData.full_name;
         if (camperData.about !== undefined) updates.about = camperData.about;
