@@ -14,17 +14,17 @@ const CamperController = {
 
     getVideosByCamperId: async (req, res) => {
         const camperId = parseInt(req.params.camperId, 10); // Asegurar que sea un número
-        console.log("CamperId recibido:", camperId); // Log para depuración
+         // console.log("CamperId recibido:", camperId); // Log para depuración
 
         try {
             const videos = await CamperModel.getVideosByCamperId(camperId);
 
             if (!videos || videos.length === 0) {
-                console.log("No se encontraron videos para camperId:", camperId);
+                 // console.log("No se encontraron videos para camperId:", camperId);
                 return res.status(404).json({ message: "No se encontraron videos para este camper." });
             }
 
-            console.log("Videos encontrados:", videos);
+             // console.log("Videos encontrados:", videos);
             return res.status(200).json(videos); // Retornar los videos en JSON
         } catch (error) {
             console.error("Error al obtener videos:", error.message);
@@ -105,7 +105,7 @@ const CamperController = {
             );
             res.status(201).json({ message: "Camper creado", id: result.data.insertId });
         } catch (error) {
-            console.log(error);
+             // console.log(error);
             res.status(error.message.includes('permiso') ? 403 : 500)
                 .json({ message: error.message });
         }
@@ -115,9 +115,9 @@ const CamperController = {
     update: async (req, res) => {
         try {
             // Logs detallados para depuración
-            console.log("req.params:", req.params);
-            console.log("req.body:", req.body);
-            console.log("req.files:", req.files);
+             // console.log("req.params:", req.params);
+             // console.log("req.body:", req.body);
+             // console.log("req.files:", req.files);
     
             const { id } = req.params;
     
@@ -135,7 +135,7 @@ const CamperController = {
             if (req.files && req.files.profile_picture) {  
                 updates.profile_picture = req.files.profile_picture;    
             }
-            console.log("soy updates",updates)
+             // console.log("soy updates",updates)
     
             // Validar que al menos un campo fue enviado
             if (Object.keys(updates).length === 0) {

@@ -9,6 +9,7 @@ const rateLimit = require('express-rate-limit');
 const fileUpload = require('express-fileupload');
 const cors = require('cors');
 
+
 const corsOptions = require('./config/corsOptions');
 
 // * Importación de la conexión a la base de datos
@@ -19,6 +20,7 @@ const app = express();
 const server = http.createServer(app);
 
 // * Middleware para procesar datos JSON en las peticiones
+app.set('trust proxy', 1);
 app.use(express.json());
 app.use(cors(corsOptions));
 
@@ -48,6 +50,9 @@ const projectRoutes = require("./routes/projectRoutes");
 const cityRoutes = require('./routes/cityRoutes');
 const technologyRoutes = require('./routes/technologyRoutes.js');
 const uploadRoutes = require('./routes/uploadRoutes');
+const passwordResetRoutes = require('./routes/passwordResetRoutes');
+
+
 
 // * Configuración de los endpoints principales
 app.use("/users", userRoutes);
@@ -59,6 +64,7 @@ app.use("/projects", projectRoutes);
 app.use('/cities', cityRoutes);
 app.use('/technology', technologyRoutes); 
 app.use('/upload', uploadRoutes);
+app.use('/password-reset', passwordResetRoutes);
 
 // ? Configuración del rate limiting global
 // @param windowMs: Ventana de tiempo en milisegundos

@@ -17,7 +17,7 @@ class UserModel {
         const query = 'CALL CheckDocumentInWhitelist(?)';
         const result = await conexion.query(query, [documentNumber]);
 
-        console.log("resultado:", result.data[0][0].document_exists)
+         // console.log("resultado:", result.data[0][0].document_exists)
     
         // Verificar el resultado directo
         const documentExists = result.data[0][0].document_exists;
