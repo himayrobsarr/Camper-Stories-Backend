@@ -56,14 +56,14 @@ class PasswordResetController {
                     <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
                         <table role="presentation" style="width: 100%; border-collapse: collapse;">
                             <tr>
-                                <td style="padding: 40px 0; text-align: center; background-color: #ffffff;">
+                                <td style="padding: 40px 0; text-align: center; background-color: #000000;">
                                     <!-- Aquí puedes agregar tu logo -->
-                                    <img src="https://camper-stories.s3.us-east-2.amazonaws.com/assets/CampusLogo.png" alt="Logo" style="max-width: 200px; height: auto;">
+                                    <img src="https://camper-stories.s3.us-east-2.amazonaws.com/assets/CampusLogo.png" alt="Logo" style="max-width: 300px; height: auto;">
                                 </td>
                             </tr>
                         </table>
                         
-                        <table role="presentation" style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <table role="presentation" style="max-width: 600px; margin: 50px auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                             <tr>
                                 <td style="padding: 40px;">
                                     <h1 style="color: #333333; font-size: 24px; margin-bottom: 20px; text-align: center;">
