@@ -45,7 +45,7 @@ class PasswordResetController {
             await transporter.sendMail({
                 from: process.env.EMAIL_USER,
                 to: email,
-                subject: 'Recuperación de Contraseña - [Nombre de tu Empresa]',
+                subject: 'Recuperación de Contraseña - Campuslands',
                 html: `
                     <!DOCTYPE html>
                     <html>
@@ -58,7 +58,7 @@ class PasswordResetController {
                             <tr>
                                 <td style="padding: 40px 0; text-align: center; background-color: #ffffff;">
                                     <!-- Aquí puedes agregar tu logo -->
-                                    <img src="[URL_DE_TU_LOGO]" alt="Logo" style="max-width: 200px; height: auto;">
+                                    <img src="https://camper-stories.s3.us-east-2.amazonaws.com/assets/CampusLogo.png" alt="Logo" style="max-width: 200px; height: auto;">
                                 </td>
                             </tr>
                         </table>
