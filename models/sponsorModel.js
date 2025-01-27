@@ -1,64 +1,65 @@
-const db = require("../helpers/conexion");
+const bcrypt = require('bcrypt');
+const conexion = require("../helpers/conexion");
+const UserModel = require('./userModel'); // Importar UserModel para reutilizar funciones
 
-const SponsorModel = {
-    // Obtener todos los sponsors
-    getAllSponsors: async () => {
-        const query = "SELECT * FROM SPONSOR";
-        return db.query(query);
-    },
+class SponsorModel {
+    static async createSponsor(sponsorData) {
+        try {
+            // Iniciar transacción
+            await conexion.query('START TRANSACTION');
 
-    // Obtener un sponsor por ID
-    getSponsorById: async (id) => {
-        const query = "SELECT * FROM SPONSOR WHERE id = ?";
-        return db.query(query, [id]);
-    },
+            try {
+                // Reutilizar validaciones del UserModel
+                await UserModel.checkExistingEmail(sponsorData.email);
+                await UserModel.checkExistingDocumentNumber(sponsorData.document_number);
+                await UserModel.checkDocumentType(sponsorData.document_type || 1);
 
-    // Crear un nuevo sponsor
-    createSponsor: async ({ contribution, first_name, last_name, email, phone, message }) => {
-        if (!contribution || !first_name || !last_name || !email) {
-            throw new Error("Datos del formulario incompletos");
+                // Encriptar contraseña
+                const salt = await bcrypt.genSalt(10);
+                const hashedPassword = await bcrypt.hash(sponsorData.password, salt);
+
+                // Crear usuario con rol sponsor
+                const query = `
+                    INSERT INTO USER (
+                        first_name, last_name, email, password,
+                        role, document_type_id, document_number,
+                        city_id, birth_date, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+                `;
+                const params = [
+                    sponsorData.first_name,
+                    sponsorData.last_name,
+                    sponsorData.email,
+                    hashedPassword,
+                    'sponsor', // Asignar rol sponsor
+                    sponsorData.document_type,
+                    sponsorData.document_number,
+                    sponsorData.city,
+                    sponsorData.birth_date
+                ];
+
+                const result = await conexion.query(query, params);
+
+                // Confirmar transacción
+                await conexion.query('COMMIT');
+
+                // Retornar datos del sponsor creado
+                return {
+                    id: result.data.insertId,
+                    ...sponsorData,
+                    password: undefined, // No retornar la contraseña
+                    role: 'sponsor'
+                };
+            } catch (error) {
+                // Si algo falla, revertir transacción
+                await conexion.query('ROLLBACK');
+                throw error;
+            }
+        } catch (error) {
+            console.error('Error en createSponsor:', error);
+            throw error;
         }
-        const query = `
-            INSERT INTO SPONSOR (contribution, first_name, last_name, email, phone, message)
-            VALUES (?, ?, ?, ?, ?, ?)
-        `;
-        return db.query(query, [
-            contribution,
-            first_name,
-            last_name,
-            email.toLowerCase(),
-            phone || null,
-            message || null
-        ]);
-    },
-
-
-    // Actualizar un sponsor existente
-    updateSponsor: async (id, { first_name, last_name, email, phone, message }) => {
-        if (!id) throw new Error("ID es requerido");
-        if (!first_name && !last_name && !email && !phone && !message) {
-            throw new Error("Datos de actualización inválidos");
-        }
-
-        const query = `
-            UPDATE SPONSOR SET
-            first_name = COALESCE(?, first_name),
-            last_name = COALESCE(?, last_name),
-            email = COALESCE(?, email),
-            phone = COALESCE(?, phone),
-            message = COALESCE(?, message)
-            WHERE id = ?
-        `;
-        return db.query(query, [first_name, last_name, email, phone, message, id]);
-    },
-
-    // Eliminar un sponsor
-    deleteSponsor: async (id) => {
-        if (!id) throw new Error("ID es requerido");
-
-        const query = "DELETE FROM SPONSOR WHERE id = ?";
-        return db.query(query, [id]);
-    },
-};
+    }
+}
 
 module.exports = SponsorModel;
