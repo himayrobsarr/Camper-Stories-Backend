@@ -118,6 +118,39 @@ class SponsorModel {
             throw error;
         }
     }
+
+    static async getSponsorById(id) {
+        const query = `
+            SELECT 
+                s.id AS user_id,
+                s.first_name,
+                s.last_name,
+                s.email,
+                dt.name AS document_type,
+                s.document_number,
+                c.name AS city,
+                s.birth_date,
+                s.role
+            FROM USER s
+            LEFT JOIN DOCUMENT_TYPE dt ON s.document_type_id = dt.id
+            LEFT JOIN CITY c ON s.city_id = c.id
+            WHERE s.id = ? AND s.role = 'sponsor'
+        `;
+
+        try {
+            const result = await db.query(query, [id]); // Ejecuta la consulta y obtiene el resultado
+            const rows = result.data;
+
+            if (!Array.isArray(rows) || rows.length === 0) {
+                return null; // Retorna null si no se encuentra el sponsor
+            }
+
+            return rows[0]; // Retorna el primer sponsor encontrado
+        } catch (error) {
+            console.error('Error en getSponsorById:', error.message);
+            throw new Error(`Error en la consulta del sponsor: ${error.message}`);
+        }
+    }
 }
 
 module.exports = SponsorModel;

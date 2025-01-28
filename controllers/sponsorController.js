@@ -50,35 +50,31 @@ class SponsorController {
         }
     }
 
+    static async getAll(req, res) {
+        try {
+            const sponsors = await SponsorModel.getAllSponsors();
 
-
-
-        static async getAll(req, res) {
-            try {
-                const sponsors = await SponsorModel.getAllSponsors();
-    
-                // Verificar si sponsors es un array antes de devolver la respuesta
-                if (!Array.isArray(sponsors)) {
-                    return res.status(500).json({
-                        message: 'Error: Los datos obtenidos no son un array',
-                        error: 'Datos inválidos recibidos'
-                    });
-                }
-    
-                // Responder con los datos si todo está correcto
-                res.status(200).json({
-                    message: 'Lista de sponsors obtenida exitosamente',
-                    data: sponsors
-                });
-            } catch (error) {
-                console.error('Error en getAllSponsors:', error.message);
-                res.status(500).json({
-                    message: 'Error al obtener la lista de sponsors',
-                    error: error.message
+            // Verificar si sponsors es un array antes de devolver la respuesta
+            if (!Array.isArray(sponsors)) {
+                return res.status(500).json({
+                    message: 'Error: Los datos obtenidos no son un array',
+                    error: 'Datos inválidos recibidos'
                 });
             }
-        }
 
+            // Responder con los datos si todo está correcto
+            res.status(200).json({
+                message: 'Lista de sponsors obtenida exitosamente',
+                data: sponsors
+            });
+        } catch (error) {
+            console.error('Error en getAllSponsors:', error.message);
+            res.status(500).json({
+                message: 'Error al obtener la lista de sponsors',
+                error: error.message
+            });
+        }
+    }
 
     static async update(req, res) {
         const { user_id } = req.params; // Obtener el ID del usuario de los parámetros de la solicitud
@@ -93,6 +89,33 @@ class SponsorController {
         } catch (error) {
             console.error('Error en el controlador updateUser:', error);
             return res.status(500).json({ message: 'Error al actualizar el usuario', error: error.message });
+        }
+    }
+
+    static async getById(req, res) {
+        const { id } = req.params; // Obtener el ID del sponsor de los parámetros de la solicitud
+
+        try {
+            const sponsor = await SponsorModel.getSponsorById(id); // Llamar al modelo para obtener el sponsor por ID
+
+            // Verificar si el sponsor existe y si es un sponsor
+            if (!sponsor || sponsor.role !== 'sponsor') {
+                return res.status(404).json({
+                    message: 'Sponsor no encontrado o no es un sponsor'
+                });
+            }
+
+            // Responder con los datos del sponsor
+            res.status(200).json({
+                message: 'Sponsor encontrado exitosamente',
+                data: sponsor
+            });
+        } catch (error) {
+            console.error('Error en getById:', error.message);
+            res.status(500).json({
+                message: 'Error al obtener el sponsor',
+                error: error.message
+            });
         }
     }
 }
