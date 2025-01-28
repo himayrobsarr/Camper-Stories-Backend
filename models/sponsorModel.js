@@ -41,9 +41,6 @@ class SponsorModel {
         }
 
     
-      
-    
-
     static async createSponsor(sponsorData) {
         try {
             const query = `INSERT INTO USER (first_name, last_name, email, password, document_type, document_number, city, birth_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
@@ -149,6 +146,23 @@ class SponsorModel {
         } catch (error) {
             console.error('Error en getSponsorById:', error.message);
             throw new Error(`Error en la consulta del sponsor: ${error.message}`);
+        }
+    }
+
+    static async deleteSponsor(id) {
+        const query = `DELETE FROM USER WHERE id = ? AND role = 'sponsor'`;
+        
+        try {
+            const result = await db.query(query, [id]); // Ejecuta la consulta para eliminar el sponsor
+
+            if (result.affectedRows === 0) {
+                throw new Error('Sponsor no encontrado o no se pudo eliminar');
+            }
+
+            return { message: 'Sponsor eliminado exitosamente' }; // Mensaje de éxito
+        } catch (error) {
+            console.error('Error en deleteSponsor:', error.message);
+            throw new Error(`Error al eliminar el sponsor: ${error.message}`);
         }
     }
 }

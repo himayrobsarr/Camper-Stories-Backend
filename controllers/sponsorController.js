@@ -118,6 +118,21 @@ class SponsorController {
             });
         }
     }
+
+    static async delete(req, res) {
+        const { id } = req.params; // Obtener el ID del sponsor de los parámetros de la solicitud
+
+        try {
+            const result = await SponsorModel.deleteSponsor(id); // Llamar al modelo para eliminar el sponsor
+            res.status(200).json(result); // Responder con el mensaje de éxito
+        } catch (error) {
+            console.error('Error en delete:', error.message);
+            res.status(500).json({
+                message: 'Error al eliminar el sponsor',
+                error: error.message
+            });
+        }
+    }
 }
 
 module.exports = SponsorController;
