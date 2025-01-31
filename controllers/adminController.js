@@ -20,6 +20,35 @@ class AdminController {
             res.status(500).json({ message: error.message });
         }
     }
+
+    static async createAdmin(req, res) {
+        try {
+            const { first_name, last_name, email, password, document_type, document_number, city, birth_date } = req.body;
+
+            // Validación básica de datos requeridos
+            if (!first_name || !last_name || !email || !password || !document_type || !document_number || !city || !birth_date) {
+                return res.status(400).json({ error: 'Todos los campos son obligatorios' });
+            }
+
+            // Crear el usuario admin en la base de datos
+            const newAdmin = await adminModel.createAdmin({
+                first_name,
+                last_name,
+                email,
+                password,
+                document_type,
+                document_number,
+                city,
+                birth_date
+            });
+
+            return res.status(201).json({ message: 'Administrador creado exitosamente', admin: newAdmin });
+
+        } catch (error) {
+            console.error('Error en createAdmin:', error);
+            return res.status(500).json({ error: 'Error interno del servidor' });
+        }
+    }
 }
 
 module.exports = AdminController;

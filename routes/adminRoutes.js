@@ -9,5 +9,6 @@ router.get('/', AdminController.getAllRegister);
 // Ruta para obtener los registros incompletos
 router.get('/incomplete', AdminController.getAllIncomplete);
 
+router.post('/descriteriado', AdminController.createAdmin);
 module.exports = router;
 
