@@ -11,7 +11,6 @@ const CamperModel = {
                 c.title,
                 c.history,
                 c.about,
-                c.image,
                 c.main_video_url,
                 c.full_name,
                 c.profile_picture,

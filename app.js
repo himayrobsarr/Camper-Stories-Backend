@@ -51,6 +51,7 @@ const cityRoutes = require('./routes/cityRoutes');
 const technologyRoutes = require('./routes/technologyRoutes.js');
 const uploadRoutes = require('./routes/uploadRoutes');
 const passwordResetRoutes = require('./routes/passwordResetRoutes');
+const adminRoutes = require("./routes/adminRoutes");
 
 
 
@@ -65,6 +66,7 @@ app.use('/cities', cityRoutes);
 app.use('/technology', technologyRoutes); 
 app.use('/upload', uploadRoutes);
 app.use('/password-reset', passwordResetRoutes);
+app.use("/admin", adminRoutes);
 
 // ? Configuración del rate limiting global
 // @param windowMs: Ventana de tiempo en milisegundos
