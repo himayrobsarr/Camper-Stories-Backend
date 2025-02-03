@@ -7,6 +7,7 @@ const corsOptions = {
             'https://camper-stories.vercel.app' ,    // Tu dominio en producción
             'https://camperstories.vercel.app',
             'https://admin-camper-stories.vercel.app'
+            
         ];
         
         // Permitir peticiones sin origen (como las de Postman)
