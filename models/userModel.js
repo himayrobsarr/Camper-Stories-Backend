@@ -17,11 +17,10 @@ class UserModel {
         const query = 'CALL CheckDocumentInWhitelist(?)';
         const result = await conexion.query(query, [documentNumber]);
 
-         // console.log("resultado:", result.data[0][0].document_exists)
-    
+        // console.log("resultado:", result.data[0][0].document_exists)
         // Verificar el resultado directo
         const documentExists = result.data[0][0].document_exists;
-    
+
         if (documentExists === 0) {
             throw new Error('Parece que no eres camper! No puedes registrarte en Camper Stories.');
         }
@@ -31,6 +30,7 @@ class UserModel {
         try {
             // Iniciar transacción
             await conexion.query('START TRANSACTION');
+            console.log(userData)
 
             try {
                 // 1. Verificar email duplicado
@@ -77,22 +77,21 @@ class UserModel {
                     title,
                     history,
                     about,
-                    image,
                     main_video_url,
                     full_name,
                     profile_picture,
                     status
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             `;
 
+                const fullName = `${userData.first_name || 'Nombre'} ${userData.last_name || 'Desconocido'}`;
                 const camperParams = [
                     userId,                                     // user_id (FK)
                     'Nuevo Camper',                            // title (por defecto)
                     'Bienvenido a mi perfil de Camper',        // description (por defecto)
-                    'Cuéntanos sobre ti...',                   // about (por defecto)
-                    null,                                      // image (inicialmente vacío)
+                    'Cuéntanos sobre ti...',                   // about (por defecto
                     null,                                      // main_video_url (inicialmente vacío)
-                    `${userData.first_name} ${userData.last_name}`,  // full_name
+                    fullName,  // full_name
                     'https://st3.depositphotos.com/6672868/13701/v/450/depositphotos_137014128-stock-illustration-user-profile-icon.jpg',                                      // profile_picture (inicialmente vacío)
                     'formacion'                                    // status inicial
                 ];
