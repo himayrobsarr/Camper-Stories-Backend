@@ -19,10 +19,13 @@ const corsOptions = {
             callback(new Error('Bloqueado por CORS'));
         }
     },
+    origin: whitelist,
+    credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true,  // Permite cookies en las peticiones
-    maxAge: 86400  // Tiempo de cache para preflight requests (24 horas)
+    allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
+    exposedHeaders: ['Authorization'],
+    maxAge: 86400
 };
 
 module.exports = corsOptions; 
+
