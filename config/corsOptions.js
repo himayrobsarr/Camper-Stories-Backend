@@ -19,7 +19,7 @@ const corsOptions = {
             callback(new Error('Bloqueado por CORS'));
         }
     },
-    origin: whitelist,
+    
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
