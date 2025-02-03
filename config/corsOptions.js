@@ -5,7 +5,8 @@ const corsOptions = {
             'http://localhost:3000',    // Frontend en desarrollo
             'http://localhost:5173',    // Frontend en Vite
             'https://camper-stories.vercel.app' ,    // Tu dominio en producción
-            'https://camperstories.vercel.app'
+            'https://camperstories.vercel.app',
+            'https://admin-camper-stories.vercel.app'
         ];
         
         // Permitir peticiones sin origen (como las de Postman)
