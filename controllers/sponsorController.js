@@ -133,6 +133,52 @@ class SponsorController {
             });
         }
     }
+
+    static async finalizeDonation(req, res) {
+        try {
+            const {
+                first_name,
+                last_name,
+                email,
+                document_type,
+                document_number,
+                city,
+                birth_date
+            } = req.body;
+
+            if (
+                !first_name || !last_name || !email ||
+                !document_type || !document_number || !city || !birth_date
+            ) {
+                return res.status(400).json({
+                    message: 'Todos los campos son obligatorios'
+                });
+            }
+
+            // Crear sponsor con contraseña generada
+            const newSponsor = await SponsorModel.finalizeDonationAndGeneratePassword({
+                first_name,
+                last_name,
+                email,
+                document_type,
+                document_number,
+                city,
+                birth_date
+            });
+
+            // Responder con éxito
+            res.status(201).json({
+                message: 'Sponsor creado exitosamente con contraseña generada',
+                data: newSponsor
+            });
+        } catch (error) {
+            console.error('Error en finalizeDonation:', error);
+            res.status(500).json({
+                message: 'Error al crear sponsor',
+                error: error.message
+            });
+        }
+    }
 }
 
 module.exports = SponsorController;
