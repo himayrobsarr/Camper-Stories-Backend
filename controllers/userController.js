@@ -7,7 +7,7 @@ class UserController {
     static async create(req, res) {
         try {
             // Validar campos requeridos
-            const requiredFields = ['first_name', 'last_name', 'email', 'password', 'document_type', 'document_number', 'birth_date', 'city'];
+            const requiredFields = ['first_name', 'last_name', 'email', 'password', 'document_type', 'document_number', 'birth_date', 'city', 'campus_id'];
             for (const field of requiredFields) {
                 if (!req.body[field]) {
                     return res.status(400).json({ message: `El campo ${field} es requerido` });
@@ -28,6 +28,8 @@ class UserController {
 
             // Crear usuario con todas sus relaciones
             const user = await UserModel.createWithRelations(req.body);
+
+        
 
             // Generar token
             const token = jwt.sign(

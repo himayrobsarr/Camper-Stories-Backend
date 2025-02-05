@@ -7,7 +7,7 @@ const router = express.Router();
 // Rutas públicas
 router.post('/login', UserController.login);
 router.post('/register', UserController.create); // Ruta pública para registro
-router.post('/', UserController.create); // Ruta alternativa para registro
+
 
 // Ruta para cerrar sesión
 router.post('/logout', UserController.logout); // Ruta para cerrar sesión
