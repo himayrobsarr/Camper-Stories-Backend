@@ -406,7 +406,35 @@ const CamperController = {
                 error: error.message
             });
         }
-    }
+    },
+
+    getCamperDetails: async (req, res) => {
+        const { id } = req.params; // Obtener el ID del camper de los parámetros
+    
+        try {
+            // Validar que el ID sea un número válido
+            const camperId = parseInt(id, 10);
+            if (isNaN(camperId)) {
+                return res.status(400).json({
+                    message: "El ID del camper debe ser un número válido"
+                });
+            }
+    
+            // Llamar al modelo para obtener los detalles completos del camper
+            const details = await CamperModel.getCamperDetails(camperId);
+    
+            return res.status(200).json(details);
+    
+        } catch (error) {
+            console.error("Error al obtener detalles del camper:", error);
+    
+            return res.status(500).json({
+                message: "Error al obtener detalles del camper",
+                error: error.message
+            });
+        }
+    },
+    
 
 };
 
