@@ -41,30 +41,38 @@ class SponsorModel {
         }
 
     
-    static async createSponsor(sponsorData) {
-        try {
-            const query = `INSERT INTO USER (first_name, last_name, email, password, document_type, document_number, city, birth_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
-            const params = [
-                sponsorData.first_name,
-                sponsorData.last_name,
-                sponsorData.email,
-                sponsorData.password,
-                sponsorData.document_type,
-                sponsorData.document_number,
-                sponsorData.city,
-                sponsorData.birth_date
-            ];
-            const result = await db.query(query, params);
-            return {
-                id: result.insertId,
-                ...sponsorData,
-                password: undefined // No devolver la contraseña
-            };
-        } catch (error) {
-            console.error('Error en createSponsor:', error);
-            throw error;
+        static async createSponsor(sponsorData) {
+            try {
+                const query = `
+                    INSERT INTO USER (
+                        first_name, last_name, email, password,
+                        document_type_id, document_number, city_id,
+                        birth_date, role, image_url
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'sponsor', NULL)`;
+                    
+                const params = [
+                    sponsorData.first_name,
+                    sponsorData.last_name,
+                    sponsorData.email,
+                    sponsorData.password,
+                    sponsorData.document_type_id,
+                    sponsorData.document_number,
+                    sponsorData.city_id,
+                    sponsorData.birth_date
+                ];
+        
+                const result = await db.query(query, params);
+                return {
+                    id: result.insertId,
+                    ...sponsorData,
+                    role: 'sponsor',
+                    password: undefined
+                };
+            } catch (error) {
+                console.error('Error en createSponsor:', error);
+                throw error;
+            }
         }
-    };
 
     static async updateUser(user_id, userData, requestingUserId, userRole) {
         try {

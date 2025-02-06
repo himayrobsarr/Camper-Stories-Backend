@@ -3,40 +3,37 @@ const SponsorModel = require('../models/sponsorModel');
 class SponsorController {
     static async create(req, res) {
         try {
-            // Validar datos del cuerpo de la solicitud
             const {
                 first_name,
                 last_name,
                 email,
                 password,
-                document_type,
+                document_type_id,  // Cambiado
                 document_number,
-                city,
+                city_id,          // Cambiado
                 birth_date
             } = req.body;
-
+    
             if (
                 !first_name || !last_name || !email || !password ||
-                !document_type || !document_number || !city || !birth_date
+                !document_type_id || !document_number || !city_id || !birth_date
             ) {
                 return res.status(400).json({
                     message: 'Todos los campos son obligatorios'
                 });
             }
-
-            // Crear sponsor
+    
             const newSponsor = await SponsorModel.createSponsor({
                 first_name,
                 last_name,
                 email,
                 password,
-                document_type,
+                document_type_id,  // Cambiado
                 document_number,
-                city,
+                city_id,          // Cambiado
                 birth_date
             });
-
-            // Responder con éxito
+    
             res.status(201).json({
                 message: 'Sponsor creado exitosamente',
                 data: newSponsor
