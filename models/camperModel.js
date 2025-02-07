@@ -331,7 +331,7 @@ const CamperModel = {
     },
 
     //campers estados
-    getGraduateCampers: async () => {
+    getGraduateCampersByCampus: async (campusId) => {
         const query = `
             SELECT 
                 id AS camper_id,
@@ -343,10 +343,11 @@ const CamperModel = {
                 profile_picture,
                 status
             FROM CAMPER
-            WHERE status = 'egresado'
+            WHERE status = 'egresado' 
+            AND campus_id = ?
         `;
-        return db.query(query);
-    },
+        return db.query(query, [campusId]);
+    },    
 
     // Get all training campers
     getTrainingCampers: async () => {

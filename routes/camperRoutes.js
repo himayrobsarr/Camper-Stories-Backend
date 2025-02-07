@@ -6,7 +6,7 @@ const limit = require('../limit/camperLimit');
 const router = express.Router();
 
 // 1. Primero las rutas específicas para estados
-router.get('/graduates', CamperController.getGraduates);  // /campers/graduates
+router.get('/graduates/:campusId', CamperController.getGraduatesByCampus);  // /campers/graduates/campusId, Todos los graduados de un campus
 router.get('/trainees', CamperController.getTrainees);    // /campers/trainees
 router.get('/:id/dreams', CamperController.getDreamsByCamperId);//obtener sueno por id de usuario
 
