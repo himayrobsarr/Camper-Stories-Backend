@@ -15,17 +15,17 @@ const CamperController = {
 
     getVideosByCamperId: async (req, res) => {
         const camperId = parseInt(req.params.camperId, 10); // Asegurar que sea un número
-         // console.log("CamperId recibido:", camperId); // Log para depuración
+        // console.log("CamperId recibido:", camperId); // Log para depuración
 
         try {
             const videos = await CamperModel.getVideosByCamperId(camperId);
 
             if (!videos || videos.length === 0) {
-                 // console.log("No se encontraron videos para camperId:", camperId);
+                // console.log("No se encontraron videos para camperId:", camperId);
                 return res.status(404).json({ message: "No se encontraron videos para este camper." });
             }
 
-             // console.log("Videos encontrados:", videos);
+            // console.log("Videos encontrados:", videos);
             return res.status(200).json(videos); // Retornar los videos en JSON
         } catch (error) {
             console.error("Error al obtener videos:", error.message);
@@ -106,7 +106,7 @@ const CamperController = {
             );
             res.status(201).json({ message: "Camper creado", id: result.data.insertId });
         } catch (error) {
-             // console.log(error);
+            // console.log(error);
             res.status(error.message.includes('permiso') ? 403 : 500)
                 .json({ message: error.message });
         }
@@ -116,33 +116,33 @@ const CamperController = {
     update: async (req, res) => {
         try {
             // Logs detallados para depuración
-             // console.log("req.params:", req.params);
-             // console.log("req.body:", req.body);
-             // console.log("req.files:", req.files);
-    
+            // console.log("req.params:", req.params);
+            // console.log("req.body:", req.body);
+            // console.log("req.files:", req.files);
+
             const { id } = req.params;
-    
+
             // Validar que el id esté presente
             if (!id) {
                 return res.status(400).json({ message: "El parámetro 'id' es obligatorio." });
             }
-    
+
             // Crear un objeto dinámico con los campos enviados
             const updates = {};
             if (req.body.full_name !== undefined) updates.full_name = req.body.full_name;
             if (req.body.city_id !== undefined) updates.city_id = req.body.city_id;
             if (req.body.about !== undefined) updates.about = req.body.about;
             if (req.body.main_video_url !== undefined) updates.main_video_url = req.body.main_video_url;
-            if (req.files && req.files.profile_picture) {  
-                updates.profile_picture = req.files.profile_picture;    
+            if (req.files && req.files.profile_picture) {
+                updates.profile_picture = req.files.profile_picture;
             }
-             // console.log("soy updates",updates)
-    
+            // console.log("soy updates",updates)
+
             // Validar que al menos un campo fue enviado
             if (Object.keys(updates).length === 0) {
                 return res.status(400).json({ message: "No se enviaron campos para actualizar." });
             }
-    
+
             // Llamar al modelo para actualizar el camper
             const result = await CamperModel.updateCamper(id, updates);
 
@@ -150,7 +150,7 @@ const CamperController = {
             if (req.files && req.files.profile_picture) {
                 responseUpdates.profile_picture = req.files.profile_picture.name;
             }
-    
+
             res.status(200).json({
                 message: "Camper actualizado",
                 updateFields: updates,
@@ -164,7 +164,7 @@ const CamperController = {
             });
         }
     },
-    
+
 
     // Eliminar un camper
     delete: async (req, res) => {
@@ -235,18 +235,27 @@ const CamperController = {
     },
 
     //campers stados
-    getGraduates: async (req, res) => {
+    // Campers egresados por campus
+    getGraduatesByCampus: async (req, res) => {
         try {
-            const result = await CamperModel.getGraduateCampers();
-            res.status(200).json(result.data);
+            const { campusId } = req.params;
+
+            if (!campusId) {
+                return res.status(400).json({ message: "El ID del campus es requerido" });
+            }
+
+            const result = await CamperModel.getGraduateCampersByCampus(campusId);
+
+            res.status(200).json(result);
         } catch (error) {
             console.error(error);
             res.status(500).json({
-                message: "Error al obtener los campers egresados",
+                message: "Error al obtener los campers egresados del campus.",
                 error: error.message
             });
         }
     },
+
 
     // Get all training campers
     getTrainees: async (req, res) => {
