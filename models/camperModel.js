@@ -341,7 +341,8 @@ const CamperModel = {
                 main_video_url,
                 full_name,
                 profile_picture,
-                status
+                status,
+                campus_id
             FROM CAMPER
             WHERE status = 'egresado' 
             AND campus_id = ?
