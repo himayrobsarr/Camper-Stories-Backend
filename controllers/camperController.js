@@ -4,13 +4,14 @@ const CamperController = {
     // Obtener todos los campers
     getAll: async (req, res) => {
         try {
-            const result = await CamperModel.getAllCampers();
+            const campusId = req.params.campusId;
+            const result = await CamperModel.getAllCampersByCampus(campusId);
             res.status(200).json(result.data);
         } catch (error) {
-            console.error(error);
             res.status(500).json({ message: "Error al obtener los campers", error: error.message });
         }
     },
+    
 
     getVideosByCamperId: async (req, res) => {
         const camperId = parseInt(req.params.camperId, 10); // Asegurar que sea un número
@@ -250,14 +251,11 @@ const CamperController = {
     // Get all training campers
     getTrainees: async (req, res) => {
         try {
-            const result = await CamperModel.getTrainingCampers();
+            const campusId = req.params.campusId;
+            const result = await CamperModel.getTrainingCampers(campusId);
             res.status(200).json(result.data);
         } catch (error) {
-            console.error(error);
-            res.status(500).json({
-                message: "Error al obtener los campers en formación",
-                error: error.message
-            });
+            res.status(500).json({ message: "Error al obtener los campers en formación", error: error.message });
         }
     },
 
