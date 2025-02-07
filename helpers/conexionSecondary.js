@@ -1,34 +1,59 @@
-// helpers/conexionSecundaria.js
 require('dotenv').config();
 const mysql = require('mysql2/promise');
 
 class ConexionSecundaria {
     constructor() {
-        this.config = {
-            host: process.env.DB2_HOST,
-            user: process.env.DB2_USER,
-            password: process.env.DB2_PASSWORD,
-            port: process.env.DB2_PORT,
-            database: process.env.DB2_NAME,
-            connectionLimit: 25,
-            queueLimit: 0,
-            waitForConnections: true,
-            connectTimeout: 10000,
-            idleTimeout: 60000,
-            maxIdle: 10
+        this.pools = new Map();
+        this.configs = {
+            khc_campusland: {
+                host: process.env.DB_HOST1,
+                user: process.env.DB_USER1,
+                password: process.env.DB_PASSWORD1,
+                port: process.env.DB_PORT1,
+                database: process.env.DB_NAME1,
+            },
+            khc_bogota: {
+                host: process.env.DB_HOST2,
+                user: process.env.DB_USER2,
+                password: process.env.DB_PASSWORD2,
+                port: process.env.DB_PORT2,
+                database: process.env.DB_NAME2,
+            },
+            khc_tibu: {
+                host: process.env.DB_HOST3,
+                user: process.env.DB_USER3,
+                password: process.env.DB_PASSWORD3,
+                port: process.env.DB_PORT3,
+                database: process.env.DB_NAME3,
+            }
         };
-        
-        this.pool = mysql.createPool(this.config);
     }
 
-    async query(query, params = []) {
+    getPool(dbName) {
+        if (!this.pools.has(dbName)) {
+            const config = {
+                ...this.configs[dbName],
+                connectionLimit: 25,
+                queueLimit: 0,
+                waitForConnections: true,
+                connectTimeout: 10000,
+                idleTimeout: 60000,
+                maxIdle: 10
+            };
+            this.pools.set(dbName, mysql.createPool(config));
+        }
+        return this.pools.get(dbName);
+    }
+
+    async query(dbName, query, params = []) {
         let connection;
         try {
-            connection = await this.pool.getConnection();
+            const pool = this.getPool(dbName);
+            connection = await pool.getConnection();
             const [results] = await connection.query(query, params);
             return { status: 200, data: results };
         } catch (error) {
-            console.error('Error en la query:', error.message);
+            console.error(`Error en la query (${dbName}):`, error.message);
             throw new Error(JSON.stringify({ 
                 status: 500, 
                 message: 'Error al ejecutar la consulta', 

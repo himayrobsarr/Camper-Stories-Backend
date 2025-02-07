@@ -2,6 +2,7 @@
 const jwt = require('jsonwebtoken');
 const UserModel = require('../models/userModel');
 const conexion = require('../helpers/conexion');
+const conexion2 = require('../helpers/conexionSecondary');
 
 class UserController {
     static async create(req, res) {
