@@ -246,7 +246,7 @@ const CamperController = {
             });
         }
     },
-
+//la ibamos cagando, pero ya solucionmamos
     // Get all training campers
     getTrainees: async (req, res) => {
         try {
