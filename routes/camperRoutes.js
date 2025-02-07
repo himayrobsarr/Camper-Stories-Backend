@@ -20,7 +20,7 @@ router.post('/:id/dreams', authMiddleware, CamperController.addDreamToCamper);
 router.delete('/:id/dreams/:dream_id', authMiddleware, CamperController.deleteDreamFromCamper);
 
 // 2. Rutas públicas generales
-router.get("/:campusId",  CamperController.getAll);
+router.get("/:campusId/campus",  CamperController.getAll);
 router.get("/:id/details", CamperController.getCamperDetails);
 
 // 3. Rutas con parámetros
