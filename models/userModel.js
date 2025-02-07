@@ -69,6 +69,7 @@ class UserModel {
 
                 const userResult = await conexion.query(userQuery, userParams);
                 const userId = userResult.data.insertId;
+                const campusId = userData.campus_id
 
                 // 7. Crear registro de camper
                 const camperQuery = `
@@ -80,8 +81,9 @@ class UserModel {
                     main_video_url,
                     full_name,
                     profile_picture,
-                    status
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    status,
+                    campus_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             `;
 
                 const fullName = `${userData.first_name || 'Nombre'} ${userData.last_name || 'Desconocido'}`;
@@ -93,7 +95,8 @@ class UserModel {
                     null,                                      // main_video_url (inicialmente vacío)
                     fullName,  // full_name
                     'https://st3.depositphotos.com/6672868/13701/v/450/depositphotos_137014128-stock-illustration-user-profile-icon.jpg',                                      // profile_picture (inicialmente vacío)
-                    'formacion'                                    // status inicial
+                    'formacion',                                // status inicial
+                    campusId
                 ];
 
                 await conexion.query(camperQuery, camperParams);

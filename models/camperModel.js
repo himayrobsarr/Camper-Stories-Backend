@@ -503,7 +503,56 @@ const CamperModel = {
             console.error("Error al eliminar el sueño:", error);
             throw error;
         }
-    }
+    },
+
+    getCamperDetails: async (camperId) => {
+        try {
+            // Ejecutar las consultas en paralelo para optimizar rendimiento
+            const [camperData, dreams, projects, videos] = await Promise.all([
+                db.query(`
+                    SELECT 
+                        c.id AS camper_id,
+                        c.title,
+                        c.history,
+                        c.about,
+                        c.main_video_url,
+                        c.full_name,
+                        c.profile_picture,
+                        c.status,
+                        u.birth_date,
+                        u.city_id 
+                    FROM CAMPER c
+                    INNER JOIN USER u ON c.user_id = u.id
+                    WHERE c.id = ?
+                `, [camperId]),
+    
+                db.query("SELECT * FROM DREAMS WHERE camper_id = ?", [camperId]),
+                db.query(`
+                    SELECT p.* 
+                    FROM PROJECT p 
+                    INNER JOIN CAMPER_PROJECT cp ON p.id = cp.project_id 
+                    WHERE cp.camper_id = ?;
+                `, [camperId]),
+                db.query("SELECT * FROM TRAINING_VIDEO WHERE camper_id = ?", [camperId])
+            ]);
+    
+            if (!camperData.data.length) {
+                throw new Error("Camper no encontrado");
+            }
+    
+            return {
+                camper: camperData.data[0],
+                dreams: dreams.data || [],
+                projects: projects.data || [],
+                videos: videos.data || []
+            };
+    
+        } catch (error) {
+            console.error("Error obteniendo detalles del camper:", error);
+            throw error;
+        }
+    },
+    
 
 };
 

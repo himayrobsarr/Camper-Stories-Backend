@@ -17,6 +17,7 @@ router.delete('/:id/dreams/:dream_id', authMiddleware, CamperController.deleteDr
 
 // 2. Rutas públicas generales
 router.get("/",  CamperController.getAll);
+router.get("/:id/details", CamperController.getCamperDetails);
 
 // 3. Rutas con parámetros
 router.get("/:id",  CamperController.getById);
