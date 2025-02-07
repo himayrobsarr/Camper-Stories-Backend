@@ -7,7 +7,7 @@ const router = express.Router();
 
 // 1. Primero las rutas específicas para estados
   
-router.get('/trainees/:campusid', CamperController.getTrainees);    // /campers/trainees
+router.get('/trainees/:campusId', CamperController.getTrainees);    // /campers/trainees
 router.get('/graduates/:campusId', CamperController.getGraduatesByCampus);  // /campers/graduates/campusId, Todos los graduados de un campus
 router.get('/:id/dreams', CamperController.getDreamsByCamperId);//obtener sueno por id de usuario
 
@@ -20,7 +20,7 @@ router.post('/:id/dreams', authMiddleware, CamperController.addDreamToCamper);
 router.delete('/:id/dreams/:dream_id', authMiddleware, CamperController.deleteDreamFromCamper);
 
 // 2. Rutas públicas generales
-router.get("/:campusid",  CamperController.getAll);
+router.get("/:campusId",  CamperController.getAll);
 router.get("/:id/details", CamperController.getCamperDetails);
 
 // 3. Rutas con parámetros
