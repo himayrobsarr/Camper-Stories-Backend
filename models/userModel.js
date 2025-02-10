@@ -4,6 +4,34 @@ const conexion = require('../helpers/conexion');
 const dbSecundaria = require("../helpers/conexionSecondary");
 
 class UserModel {
+    
+    static async checkDocumentInCampus(documentNumber, campusId) {
+        const dbMapping = {
+            1: 'khc_campusland',
+            2: 'khc_bogota',
+            3: 'khc_tibu'
+        };
+    
+        const dbName = dbMapping[campusId];
+        if (!dbName) {
+            throw new Error('Campus no válido');
+        }
+    
+        const query = `
+            SELECT documentoNumero 
+            FROM usersEstudiantes 
+            WHERE documentoNumero = ? 
+            AND estado IN (21, 31)`; // estados: 21=Activo, 31=Egresado
+    
+        const result = await dbSecundaria.query(dbName, query, [documentNumber]);
+        
+        if (!result.data || result.data.length === 0) {
+            throw new Error('No eres un camper activo o egresado en este campus');
+        }
+        
+        return true;
+    }
+
     static async checkDocumentType(typeId = 1) {
         const query = 'SELECT id FROM DOCUMENT_TYPE WHERE id = ?';
         const result = await conexion.query(query, [typeId]);
