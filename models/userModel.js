@@ -1,6 +1,7 @@
 // models/userModel.js
 const bcrypt = require('bcrypt');
 const conexion = require('../helpers/conexion');
+const dbSecundaria = require("../helpers/conexionSecondary");
 
 class UserModel {
     static async checkDocumentType(typeId = 1) {

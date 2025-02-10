@@ -14,7 +14,7 @@ class adminModel {
 
     static async getAllIncomplete() {
         const query = `-- Para getAllIncomplete:
-SELECT 
+    SELECT 
     c.id AS camper_id,
     c.title,
     c.history,
@@ -25,18 +25,18 @@ SELECT
     c.status,
     u.birth_date,
     u.city_id 
-FROM CAMPER c
-LEFT JOIN USER u ON c.user_id = u.id
-LEFT JOIN CAMPER_PROJECT cp ON c.id = cp.camper_id
-LEFT JOIN CAMPER_MERIT cm ON c.id = cm.user_id
-LEFT JOIN DREAMS d ON c.id = d.camper_id
-LEFT JOIN TRAINING_VIDEO tv ON c.id = tv.camper_id
-WHERE (c.main_video_url IS NULL)
+    FROM CAMPER c
+    LEFT JOIN USER u ON c.user_id = u.id
+    LEFT JOIN CAMPER_PROJECT cp ON c.id = cp.camper_id
+    LEFT JOIN CAMPER_MERIT cm ON c.id = cm.user_id
+    LEFT JOIN DREAMS d ON c.id = d.camper_id
+    LEFT JOIN TRAINING_VIDEO tv ON c.id = tv.camper_id
+    WHERE (c.main_video_url IS NULL)
     AND (cp.camper_id IS NOT NULL OR
          cm.user_id IS NOT NULL OR
          d.camper_id IS NOT NULL OR
          tv.camper_id IS NOT NULL)
-GROUP BY c.id, c.user_id, c.title, c.history, c.about, 
+    GROUP BY c.id, c.user_id, c.title, c.history, c.about, 
          c.main_video_url, c.full_name, c.profile_picture, 
          c.status, u.birth_date, u.city_id;`;
 
@@ -44,7 +44,7 @@ GROUP BY c.id, c.user_id, c.title, c.history, c.about,
         if (!result.data || result.data.length === 0) {
             throw new Error('No se encontraron registros incompletos');
         }
-        return result.data; 
+        return result.data;
     }
 
     static async createAdmin(userData) {
