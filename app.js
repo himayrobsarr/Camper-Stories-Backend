@@ -10,10 +10,10 @@ const fileUpload = require('express-fileupload');
 const cors = require('cors');
 
 
-const corsOptions = require('./config/corsOptions');
+const corsOptions = require('./legacy/config/corsOptions');
 
 // * Importación de la conexión a la base de datos
-const db = require("./helpers/conexion");
+const db = require("./legacy/helpers/conexion");
 
 // * Inicialización de la aplicación Express y el servidor HTTP
 const app = express();
@@ -40,23 +40,24 @@ app.use(fileUpload({
     responseOnLimit: 'El archivo es demasiado grande. Máximo 10 MB.',
 }));
 
-// * Importación de rutas de la aplicación
-const userRoutes = require("./routes/userRoutes");
-const camperRoutes = require("./routes/camperRoutes");
-const sponsorRoutes = require("./routes/sponsorRoutes");
-const dreamsRoutes = require("./routes/dreamRoutes");
-const meritRoutes = require("./routes/meritRoutes");
-const projectRoutes = require("./routes/projectRoutes");
-const cityRoutes = require('./routes/cityRoutes');
-const technologyRoutes = require('./routes/technologyRoutes.js');
-const uploadRoutes = require('./routes/uploadRoutes');
-const passwordResetRoutes = require('./routes/passwordResetRoutes');
-const wompiRoutes = require("./routes/wompiRoutes.js")
-const adminRoutes = require("./routes/adminRoutes");
+// * Importación de rutas legacy (actualizamos las rutas)
+const userRoutes = require("./legacy/routes/userRoutes");
+const camperRoutes = require("./legacy/routes/camperRoutes");
+const sponsorRoutes = require("./legacy/routes/sponsorRoutes");
+const dreamsRoutes = require("./legacy/routes/dreamRoutes");
+const meritRoutes = require("./legacy/routes/meritRoutes");
+const projectRoutes = require("./legacy/routes/projectRoutes");
+const cityRoutes = require('./legacy/routes/cityRoutes');
+const technologyRoutes = require('./legacy/routes/technologyRoutes.js');
+const uploadRoutes = require('./legacy/routes/uploadRoutes');
+const passwordResetRoutes = require('./legacy/routes/passwordResetRoutes');
+const wompiRoutes = require("./legacy/routes/wompiRoutes.js");
+const adminRoutes = require("./legacy/routes/adminRoutes");
 
+// Comentamos temporalmente la importación de las nuevas rutas TypeScript
+// const tsUserRoutes = require('./dist/interfaces/http/routes/userRoutes').default;
 
-
-// * Configuración de los endpoints principales
+// * Configuración de los endpoints legacy
 app.use("/users", userRoutes);
 app.use("/campers", camperRoutes);
 app.use("/sponsors", sponsorRoutes);
@@ -67,8 +68,11 @@ app.use('/cities', cityRoutes);
 app.use('/technology', technologyRoutes); 
 app.use('/upload', uploadRoutes);
 app.use('/password-reset', passwordResetRoutes);
-app.use("/payments", wompiRoutes)
+app.use("/payments", wompiRoutes);
 app.use("/admin", adminRoutes);
+
+// Comentamos temporalmente las nuevas rutas
+// app.use("/api/v2/users", tsUserRoutes);
 
 // ? Configuración del rate limiting global
 // @param windowMs: Ventana de tiempo en milisegundos

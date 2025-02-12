@@ -1,5 +1,5 @@
 const corsOptions = {
-    origin: function (origin, callback) {
+    origin: (origin, callback) => {
         // Lista de orígenes permitidos
         const whitelist = [
             'http://localhost:3000',    // Frontend en desarrollo
@@ -11,11 +11,7 @@ const corsOptions = {
         ];
         
         // Permitir peticiones sin origen (como las de Postman)
-        if (!origin) {
-            return callback(null, true);
-        }
-
-        if (whitelist.indexOf(origin) !== -1) {
+        if (!origin || whitelist.indexOf(origin) !== -1) {
             callback(null, true);
         } else {
             callback(new Error('Bloqueado por CORS'));

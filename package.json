@@ -3,10 +3,17 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "nodemon app.js",
-    "start": "node app.js"
+    "start": "node app.js",
+    "start:legacy": "node app.js",
+    "start:new": "ts-node src/server.ts",
+    "dev": "concurrently \"npm run dev:legacy\" \"npm run dev:new\"",
+    "dev:legacy": "nodemon app.js",
+    "dev:new": "nodemon -r ts-node/register src/server.ts",
+    "build": "tsc",
+    "watch": "tsc -w"
   },
   "dependencies": {
+    "@types/sequelize": "^4.28.20",
     "aws-sdk": "^2.1692.0",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^2.4.3",
@@ -19,9 +26,15 @@
     "jsonwebtoken": "^9.0.2",
     "mysql2": "^3.11.5",
     "nodemailer": "^6.9.16",
-    "sequelize": "^6.37.5"
+    "reflect-metadata": "^0.2.2",
+    "sequelize": "^6.37.5",
+    "sequelize-typescript": "^2.1.6"
   },
   "devDependencies": {
-    "nodemon": "^3.1.9"
+    "@types/bcrypt": "^5.0.2",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.13.1",
+    "nodemon": "^3.1.9",
+    "typescript": "^5.7.3"
   }
 }
