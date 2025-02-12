@@ -56,39 +56,35 @@ class UserController {
         try {
             const { email, password } = req.body;
             
-            // Buscar usuario por email
             const user = await UserModel.findByEmail(email);
-             // console.log("user:", user);          
             
             if (!user) {
                 return res.status(401).json({ message: 'Credenciales inválidas' });
             }
 
-            // Validar contraseña
             const isValidPassword = await UserModel.validatePassword(user, password);
             if (!isValidPassword) {
                 return res.status(401).json({ message: 'Credenciales inválidas' });
             }
 
-
-            // Generar token
             const token = jwt.sign(
                 { 
                     id: user.user_id, 
                     email: user.email, 
-                    role: user.role 
+                    role_id: user.role_id,
+                    role_name: user.role_name
                 },
                 process.env.JWT_SECRET,
                 { expiresIn: '24h' }
             );
 
-            // Eliminar datos sensibles antes de enviar la respuesta
             const userData = {
                 camper_id: user.id,
                 first_name: user.first_name,
                 last_name: user.last_name,
                 email: user.email,
-                role: user.role,
+                role_id: user.role_id,
+                role_name: user.role_name,
                 city: user.city_name
             };
 
