@@ -4,6 +4,7 @@ const corsOptions = {
         const whitelist = [
             'http://localhost:3000',    // Frontend en desarrollo
             'http://localhost:5173',    // Frontend en Vite
+            'http://localhost:5174', 
             'https://camper-stories.vercel.app' ,    // Tu dominio en producción
             'https://camperstories.vercel.app',
             'https://admin-camper-stories.vercel.app'
