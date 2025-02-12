@@ -442,6 +442,36 @@ const CamperController = {
         }
     },
     
+    getAllCampersDetails: async (req, res) => {  
+        try {
+            // Agregar logs para debugging
+            console.log('Iniciando getAllCampersDetails');
+            
+            const campers = await CamperModel.getAllCampersDetails();
+            
+            console.log('Campers obtenidos:', campers ? campers.length : 0);
+    
+            if (!campers || campers.length === 0) {
+                return res.status(404).json({
+                    status: 404,
+                    message: "No se encontraron campers"
+                });
+            }
+    
+            return res.status(200).json({
+                status: 200,
+                message: "Datos de campers obtenidos exitosamente",
+                data: campers
+            });
+        } catch (error) {
+            console.error("Error en getAllCampersDetails:", error);
+            return res.status(500).json({
+                status: 500,
+                message: "Error al obtener detalles de los campers",
+                error: error.message
+            });
+        }
+    }
 
 };
 
