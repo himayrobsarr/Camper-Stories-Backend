@@ -117,3 +117,5 @@ class WebhookLogModel {
         }
     }
 }
+
+module.exports = WebhookLogModel;

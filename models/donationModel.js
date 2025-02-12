@@ -1,4 +1,3 @@
-const { CostExplorer } = require('aws-sdk');
 const conexion = require('../helpers/conexion');
 
 class DonationModel {

@@ -69,6 +69,7 @@ app.use('/upload', uploadRoutes);
 app.use('/password-reset', passwordResetRoutes);
 app.use("/payments", wompiRoutes)
 app.use("/admin", adminRoutes);
+app.use('/wompi', wompiRoutes);
 
 // ? Configuración del rate limiting global
 // @param windowMs: Ventana de tiempo en milisegundos
