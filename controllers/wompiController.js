@@ -53,6 +53,8 @@ const WompiController = {
 
             await connection.beginTransaction();
 
+            const paymentMethodType = paymentData.paymentMethodType ? paymentData.paymentMethodType.toLowerCase() : 'unknown';
+
             const payment = await PaymentModel.create({
                 reference: paymentData.reference,
                 sponsor_id: null,
@@ -61,12 +63,12 @@ const WompiController = {
                 currency: paymentData.currency,
                 transaction_id: paymentData.reference,
                 payment_status: paymentData.status?.toLowerCase() || 'pending',
-                payment_method: paymentData.paymentMethodType?.toLowerCase() || 'unknown',
+                payment_method: paymentMethodType,
             });
 
             const donation = await DonationModel.create({
                 payment_id: paymentData.reference,
-                message: `Donation via ${paymentData.paymentMethodType?.toLowerCase() || 'unknown'}`,
+                message: `Donation via ${paymentMethodType}`,
                 amount: paymentData.amountInCents / 100,
                 camper_id: null,
                 user_id: Number(paymentData.customerData?.id) || null,
