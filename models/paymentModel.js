@@ -4,6 +4,16 @@ class PaymentModel {
   static async create(paymentData) {
     const { connection } = await conexion.getConexion();
     try {
+      // Primero verificar si el pago ya existe
+      const [existingPayment] = await connection.query(
+        'SELECT * FROM PAYMENT WHERE id = ?',
+        [paymentData.reference]
+      );
+
+      if (existingPayment.length > 0) {
+        return existingPayment[0]; // Retornar el pago existente
+      }
+
       const query = `
                 INSERT INTO PAYMENT (
                     id,
@@ -29,12 +39,11 @@ class PaymentModel {
         paymentData.payment_method || 'card',
       ];
 
-      const [result] = await connection.query(query, params);
+      await connection.query(query, params);
       return {
         id: paymentData.reference,
         ...paymentData,
       };
-
     } catch (error) {
       throw error;
     } finally {

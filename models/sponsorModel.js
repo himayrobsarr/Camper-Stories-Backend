@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
 const db = require("../helpers/conexion");
 const UserModel = require('./userModel'); // Importar UserModel para reutilizar funciones
+const PasswordResetController = require('../controllers/passwordResetController');
 
 
 class SponsorModel {
@@ -207,7 +208,6 @@ class SponsorModel {
 
     static async createSponsorWithRelations(sponsorData) {
         try {
-            // Iniciar transacción
             await db.query('START TRANSACTION');
 
             try {
@@ -220,9 +220,10 @@ class SponsorModel {
                 // 3. Verificar que existe el tipo de documento
                 await UserModel.checkDocumentType(sponsorData.document_type_id);
 
-                // 4. Encriptar contraseña
+                // 4. Generar contraseña por defecto usando el número de documento
+                const defaultPassword = sponsorData.document_number;
                 const salt = await bcrypt.genSalt(10);
-                const hashedPassword = await bcrypt.hash(sponsorData.password, salt);
+                const hashedPassword = await bcrypt.hash(defaultPassword, salt);
 
                 // 5. Crear usuario con role_id = 2 (sponsor)
                 const userQuery = `
@@ -260,7 +261,7 @@ class SponsorModel {
                 const sponsorParams = [
                     userId,
                     sponsorData.plan_id,
-                    'inactivo'  // status inicial
+                    'activo'  // cambiado a 'activo' ya que el pago está aprobado
                 ];
 
                 await db.query(sponsorQuery, sponsorParams);
@@ -268,17 +269,28 @@ class SponsorModel {
                 // Confirmar transacción
                 await db.query('COMMIT');
 
-                // 7. Retornar sponsor creado
+                // 7. Enviar email con las credenciales
+                try {
+                    await PasswordResetController.sendWelcomeEmail({
+                        email: sponsorData.email,
+                        first_name: sponsorData.first_name,
+                        document_number: sponsorData.document_number
+                    });
+                } catch (emailError) {
+                    console.error('Error al enviar email de bienvenida:', emailError);
+                    // No revertimos la transacción por error en el email
+                }
+
+                // 8. Retornar sponsor creado
                 return {
                     id: userId,
                     ...sponsorData,
                     password: undefined,
                     role: 'sponsor',
-                    status: 'inactivo'
+                    status: 'activo'
                 };
 
             } catch (error) {
-                // Si algo falla, revertir cambios
                 await db.query('ROLLBACK');
                 throw error;
             }

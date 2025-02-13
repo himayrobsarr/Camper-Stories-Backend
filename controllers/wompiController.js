@@ -2,7 +2,10 @@ const crypto = require("crypto");
 const conexion = require('../helpers/conexion');
 const PaymentModel = require("../models/paymentModel");
 const DonationModel = require("../models/donationModel");
+const SponsorModel = require("../models/sponsorModel");
 const INTEGRITY_KEY = process.env.WOMPI_INTEGRITY_KEY;
+const bcrypt = require('bcrypt');
+const PasswordResetController = require('./passwordResetController');
 
 /**
  * Función para generar la firma
@@ -43,55 +46,53 @@ const WompiController = {
      * Guarda la información del pago y genera la firma
      */
     savePaymentInfo: async (req, res) => {
-        const { connection } = await conexion.getConexion();
+        let connection;
         try {
+            connection = (await conexion.getConexion()).connection;
             const paymentData = req.body;
 
-            if (!paymentData || !paymentData.reference || !paymentData.amountInCents || !paymentData.currency) {
-                return res.status(400).json({ error: "Datos incompletos en la solicitud." });
-            }
-
-            await connection.beginTransaction();
-
-            const paymentMethodType = paymentData.paymentMethodType ? paymentData.paymentMethodType.toLowerCase() : 'unknown';
-
+            // 1. Primero crear el payment sin sponsor_id
             const payment = await PaymentModel.create({
                 reference: paymentData.reference,
-                sponsor_id: null,
-                user_id: Number(paymentData.customerData?.id) || null,
-                amount: paymentData.amountInCents / 100,
+                amount: paymentData.amountInCents,
                 currency: paymentData.currency,
-                transaction_id: paymentData.reference,
-                payment_status: paymentData.status?.toLowerCase() || 'pending',
-                payment_method: paymentMethodType,
+                transaction_id: paymentData.transaction_id,
+                payment_status: paymentData.status,
+                payment_method: paymentData.paymentMethodType,
+                sponsor_id: null,  // Inicialmente null
+                user_id: null
             });
 
+            // 2. Si el pago es aprobado, crear el sponsor
+            if (paymentData.status === 'APPROVED') {
+                const sponsor = await SponsorModel.createSponsorWithRelations({
+                    ...paymentData.customerData,
+                    plan_id: paymentData.plan_id
+                });
+
+                // 3. Actualizar el payment con el sponsor_id
+                await PaymentModel.update(payment.id, { sponsor_id: sponsor.id });
+            }
+
+            // 4. Crear la donación
             const donation = await DonationModel.create({
-                payment_id: paymentData.reference,
-                message: `Donation via ${paymentMethodType}`,
-                amount: paymentData.amountInCents / 100,
-                camper_id: null,
-                user_id: Number(paymentData.customerData?.id) || null,
+                payment_id: payment.id,
+                amount: paymentData.amountInCents,
+                message: paymentData.customerData.message || ''
             });
 
-            await connection.commit();
-            
-            return res.status(200).json({
-                message: "Datos guardados correctamente.",
-                signature: generateSignatureHelper(paymentData.reference, paymentData.amountInCents, paymentData.currency),
+            res.status(200).json({
+                message: "Datos guardados correctamente",
                 payment,
-                donation,
+                donation
             });
         } catch (error) {
             if (connection) {
                 await connection.rollback();
+                connection.release();
             }
             console.error("Error en savePaymentInfo:", error);
             return res.status(500).json({ error: "Error interno del servidor." });
-        } finally {
-            if (connection) {
-                connection.release();
-            }
         }
     }
 };
