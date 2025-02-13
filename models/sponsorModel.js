@@ -204,6 +204,89 @@ class SponsorModel {
             throw error;
         }
     }
+
+    static async createSponsorWithRelations(sponsorData) {
+        try {
+            // Iniciar transacción
+            await db.query('START TRANSACTION');
+
+            try {
+                // 1. Verificar email duplicado
+                await UserModel.checkExistingEmail(sponsorData.email);
+
+                // 2. Verificar número de documento duplicado
+                await UserModel.checkExistingDocumentNumber(sponsorData.document_number);
+
+                // 3. Verificar que existe el tipo de documento
+                await UserModel.checkDocumentType(sponsorData.document_type_id);
+
+                // 4. Encriptar contraseña
+                const salt = await bcrypt.genSalt(10);
+                const hashedPassword = await bcrypt.hash(sponsorData.password, salt);
+
+                // 5. Crear usuario con role_id = 2 (sponsor)
+                const userQuery = `
+                    INSERT INTO USER (
+                        first_name, last_name, email, password,
+                        role_id, document_type_id, document_number,
+                        city_id, birth_date, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+                `;
+
+                const userParams = [
+                    sponsorData.first_name,
+                    sponsorData.last_name,
+                    sponsorData.email,
+                    hashedPassword,
+                    2,  // role_id para sponsor
+                    sponsorData.document_type_id,
+                    sponsorData.document_number,
+                    sponsorData.city_id,
+                    sponsorData.birth_date
+                ];
+
+                const userResult = await db.query(userQuery, userParams);
+                const userId = userResult.data.insertId;
+
+                // 6. Crear registro de sponsor
+                const sponsorQuery = `
+                    INSERT INTO SPONSOR (
+                        user_id,
+                        plan_id,
+                        status
+                    ) VALUES (?, ?, ?)
+                `;
+
+                const sponsorParams = [
+                    userId,
+                    sponsorData.plan_id,
+                    'inactivo'  // status inicial
+                ];
+
+                await db.query(sponsorQuery, sponsorParams);
+
+                // Confirmar transacción
+                await db.query('COMMIT');
+
+                // 7. Retornar sponsor creado
+                return {
+                    id: userId,
+                    ...sponsorData,
+                    password: undefined,
+                    role: 'sponsor',
+                    status: 'inactivo'
+                };
+
+            } catch (error) {
+                // Si algo falla, revertir cambios
+                await db.query('ROLLBACK');
+                throw error;
+            }
+        } catch (error) {
+            console.error('Error en createSponsorWithRelations:', error);
+            throw error;
+        }
+    }
 }
 
 module.exports = SponsorModel;

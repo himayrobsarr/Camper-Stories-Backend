@@ -1,47 +1,62 @@
 const SponsorModel = require('../models/sponsorModel');
+const jwt = require('jsonwebtoken');
 
 class SponsorController {
     static async create(req, res) {
         try {
-            const {
-                first_name,
-                last_name,
-                email,
-                password,
-                document_type_id,  // Cambiado
-                document_number,
-                city_id,          // Cambiado
-                birth_date
-            } = req.body;
-    
-            if (
-                !first_name || !last_name || !email || !password ||
-                !document_type_id || !document_number || !city_id || !birth_date
-            ) {
+            // Validar campos requeridos
+            const requiredFields = [
+                'first_name',
+                'last_name',
+                'email',
+                'password',
+                'document_type_id',
+                'document_number',
+                'city_id',
+                'birth_date',
+                'plan_id'
+            ];
+
+            for (const field of requiredFields) {
+                if (!req.body[field]) {
+                    return res.status(400).json({
+                        message: `El campo ${field} es requerido`
+                    });
+                }
+            }
+
+            // Validar formato de fecha
+            const birthDate = new Date(req.body.birth_date);
+            if (isNaN(birthDate.getTime())) {
                 return res.status(400).json({
-                    message: 'Todos los campos son obligatorios'
+                    message: 'Formato de fecha inválido. Use YYYY-MM-DD'
                 });
             }
-    
-            const newSponsor = await SponsorModel.createSponsor({
-                first_name,
-                last_name,
-                email,
-                password,
-                document_type_id,  // Cambiado
-                document_number,
-                city_id,          // Cambiado
-                birth_date
-            });
-    
+
+            // Crear sponsor con todas sus relaciones
+            const sponsor = await SponsorModel.createSponsorWithRelations(req.body);
+
+            // Generar token JWT
+            const token = jwt.sign(
+                {
+                    id: sponsor.id,
+                    email: sponsor.email,
+                    role: 'sponsor'
+                },
+                process.env.JWT_SECRET,
+                { expiresIn: '24h' }
+            );
+
             res.status(201).json({
                 message: 'Sponsor creado exitosamente',
-                data: newSponsor
+                token,
+                sponsor
             });
+
         } catch (error) {
-            console.error('Error en createSponsor:', error);
-            res.status(500).json({
-                message: 'Error al crear sponsor',
+            console.error('Error en create sponsor:', error);
+            res.status(400).json({
+                message: 'Error al crear el sponsor',
                 error: error.message
             });
         }
