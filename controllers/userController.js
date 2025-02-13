@@ -4,7 +4,7 @@ const UserModel = require('../models/userModel');
 const conexion = require('../helpers/conexion');
 
 class UserController {
-    static async create(req, res) {
+    static async      create(req, res) {
         try {
             // Validar campos requeridos
             const requiredFields = ['first_name', 'last_name', 'email', 'password', 'document_type', 'document_number', 'birth_date', 'city', 'campus_id'];
