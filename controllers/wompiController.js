@@ -43,81 +43,53 @@ const WompiController = {
      * Guarda la información del pago y genera la firma
      */
     savePaymentInfo: async (req, res) => {
+        const { connection } = await conexion.getConexion();
         try {
             const paymentData = req.body;
 
-            // Verificar que se envían los datos requeridos
             if (!paymentData || !paymentData.reference || !paymentData.amountInCents || !paymentData.currency) {
                 return res.status(400).json({ error: "Datos incompletos en la solicitud." });
             }
 
-            // Generar la firma
-            const signature = generateSignatureHelper(paymentData.reference, paymentData.amountInCents, paymentData.currency);
+            await connection.beginTransaction();
 
-            const transactionId = paymentData.reference; // Ahora `reference` es el ID en `PAYMENT`
-            const amount = paymentData.amountInCents / 100;
-            const paymentStatus = paymentData.status ? paymentData.status.toLowerCase() : "pending";
-            const paymentMethod = paymentData.paymentMethodType ? paymentData.paymentMethodType.toLowerCase() : "unknown";
-            const userId = Number(paymentData.customerData?.id) || null;
-            const message = `Donation via ${paymentMethod}`;
+            const payment = await PaymentModel.create({
+                reference: paymentData.reference,
+                sponsor_id: null,
+                user_id: Number(paymentData.customerData?.id) || null,
+                amount: paymentData.amountInCents / 100,
+                currency: paymentData.currency,
+                transaction_id: paymentData.reference,
+                payment_status: paymentData.status?.toLowerCase() || 'pending',
+                payment_method: paymentData.paymentMethodType?.toLowerCase() || 'unknown',
+            });
 
-            // Iniciar transacción
-            const { connection } = await conexion.getConexion();
-            if (!connection) throw new Error("No se pudo obtener conexión a la base de datos.");
+            const donation = await DonationModel.create({
+                payment_id: paymentData.reference,
+                message: `Donation via ${paymentData.paymentMethodType?.toLowerCase() || 'unknown'}`,
+                amount: paymentData.amountInCents / 100,
+                camper_id: null,
+                user_id: Number(paymentData.customerData?.id) || null,
+            });
 
-            try {
-                await connection.beginTransaction();
-                // Insertar en la tabla PAYMENT
-                console.log('Intentando crear PAYMENT:', {
-                    reference: transactionId,
-                    sponsor_id: null,
-                    user_id: userId,
-                    amount: amount,
-                    currency: paymentData.currency,
-                    transaction_id: transactionId,
-                    payment_status: paymentStatus,
-                    payment_method: paymentMethod,
-                });
-
-                const payment = await PaymentModel.create({
-                    reference: transactionId, // `reference` ahora es el ID
-                    sponsor_id: null,
-                    user_id: userId,
-                    amount: amount,
-                    currency: paymentData.currency,
-                    transaction_id: transactionId,
-                    payment_status: paymentStatus,
-                    payment_method: paymentMethod,
-                });
-                console.log('PAYMENT creado:', payment);
-                // Insertar en la tabla DONATION
-                const donation = await DonationModel.create({
-                    payment_id: transactionId, // Se relaciona con `reference`
-                    message: message,
-                    amount: amount,
-                    camper_id: null,
-                    user_id: userId,
-                });
-
-                // Confirmar transacción
-                await connection.commit();
-                connection.release();
-
-                return res.status(200).json({
-                    message: "Datos guardados correctamente.",
-                    signature,
-                    payment,
-                    donation,
-                });
-            } catch (error) {
-                await connection.rollback();
-                connection.release();
-                console.error("Error guardando la información del pago:", error);
-                return res.status(500).json({ error: "Error interno del servidor." });
-            }
+            await connection.commit();
+            
+            return res.status(200).json({
+                message: "Datos guardados correctamente.",
+                signature: generateSignatureHelper(paymentData.reference, paymentData.amountInCents, paymentData.currency),
+                payment,
+                donation,
+            });
         } catch (error) {
+            if (connection) {
+                await connection.rollback();
+            }
             console.error("Error en savePaymentInfo:", error);
             return res.status(500).json({ error: "Error interno del servidor." });
+        } finally {
+            if (connection) {
+                connection.release();
+            }
         }
     }
 };

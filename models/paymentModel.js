@@ -2,9 +2,8 @@ const conexion = require('../helpers/conexion');
 class PaymentModel {
   // Crear un nuevo pago
   static async create(paymentData) {
+    const { connection } = await conexion.getConexion();
     try {
-      await conexion.query('START TRANSACTION');
-
       const query = `
                 INSERT INTO PAYMENT (
                     id,
@@ -30,17 +29,16 @@ class PaymentModel {
         paymentData.payment_method || 'card',
       ];
 
-      conexion.query(query, params);
-      await conexion.query('COMMIT');
+      const [result] = await connection.query(query, params);
       return {
         id: paymentData.reference,
         ...paymentData,
       };
 
-
     } catch (error) {
-      await conexion.query('ROLLBACK');
       throw error;
+    } finally {
+      if (connection) connection.release();
     }
   }
 
