@@ -7,6 +7,7 @@ class PaymentModel {
 
       const query = `
                 INSERT INTO PAYMENT (
+                    id,
                     sponsor_id, 
                     user_id, 
                     amount, 
@@ -14,12 +15,12 @@ class PaymentModel {
                     transaction_id, 
                     payment_status, 
                     payment_method,
-                    wompi_reference, 
                     payment_date
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())
             `;
 
       const params = [
+        paymentData.reference,
         paymentData.sponsor_id || null,
         paymentData.user_id || null,
         paymentData.amount,
@@ -27,16 +28,16 @@ class PaymentModel {
         paymentData.transaction_id,
         paymentData.payment_status || 'pending',
         paymentData.payment_method || 'card',
-        paymentData.wompi_reference
       ];
 
-      const result = await conexion.query(query, params);
+      conexion.query(query, params);
       await conexion.query('COMMIT');
-
       return {
-        id: result.data.insertId,
-        ...paymentData
+        id: paymentData.reference,
+        ...paymentData,
       };
+
+
     } catch (error) {
       await conexion.query('ROLLBACK');
       throw error;
