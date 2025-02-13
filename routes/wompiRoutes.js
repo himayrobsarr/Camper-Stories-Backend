@@ -4,6 +4,7 @@ const wompiController = require("../controllers/wompiController");
 
 router.post("/generate-signature", wompiController.generateSignature);
 // Ruta para procesar los webhooks de Wompi
-router.post('/webhook', wompiController.handlePaymentWebhook);
+router.post('/save-info', wompiController.savePaymentInfo);
+// router.post('/save-weebhook', wompiController.handlePaymentWebhook);
 
 module.exports = router;
