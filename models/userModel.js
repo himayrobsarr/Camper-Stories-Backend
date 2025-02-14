@@ -125,18 +125,44 @@ class UserModel {
     }
 
     static async findByEmail(email) {
+        const query = `
+            SELECT 
+                u.*,
+                c.name as city_name,
+                dt.name as document_type_name
+            FROM USER u
+            LEFT JOIN CITY c ON u.city_id = c.id
+            LEFT JOIN DOCUMENT_TYPE dt ON u.document_type_id = dt.id
+            WHERE u.email = ?
+        `;
+
         try {
-            const query = `
-                SELECT u.*, c.name as city_name, cam.*, r.name as role_name
-                FROM USER u
-                LEFT JOIN CITY c ON u.city_id = c.id
-                LEFT JOIN CAMPER cam ON u.id = cam.user_id
-                LEFT JOIN role r ON u.role_id = r.id
-                WHERE u.email = ?
-            `;
             const result = await conexion.query(query, [email]);
-            return result.data[0];
+            
+            if (!result.data || result.data.length === 0) {
+                return null;
+            }
+
+            const user = result.data[0];
+            
+            // Asignar rol basado en role_id
+            switch (user.role_id) {
+                case 1:
+                    user.role = 'admin';
+                    break;
+                case 2:
+                    user.role = 'sponsor';
+                    break;
+                case 3:
+                    user.role = 'camper';
+                    break;
+                default:
+                    user.role = 'user';
+            }
+
+            return user;
         } catch (error) {
+            console.error('Error en findByEmail:', error);
             throw error;
         }
     }
