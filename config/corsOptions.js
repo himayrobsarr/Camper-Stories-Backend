@@ -9,7 +9,7 @@ const corsOptions = {
             'https://camperstories.vercel.app',
             'https://admin-camper-stories.vercel.app',
             'https://campuslands.vercel.app',
-            'https://admin-landing-ia.vercel.app/'
+            'https://admin-landing-ia.vercel.app'
         ];
         
         // Permitir peticiones sin origen (como las de Postman)
