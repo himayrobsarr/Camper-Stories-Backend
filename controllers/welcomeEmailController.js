@@ -59,15 +59,16 @@ class WelcomeEmailController {
                                         <li>📆 <b>Fecha y Hora:</b> 22 de febrero de 2025, de 8:00 a.m. a 12:00-01:00 p.m.</li>
                                         <li>⏱️ <b>Duración:</b> 4 horas de formación intensiva y práctica</li>
                                         <li>📍 <b>Modalidad:</b> Presencial en nuestras instalaciones.</li>
+                                        <li>📄 <b>Importante:</b> Traer un documento de identificación en físico (cédula, pasaporte, o licencia).</li>
                                     </ul>
 
                                     <h2 style="color: #007bff; font-size: 18px; text-align: center;">Ubicación para la modalidad presencial:</h2>
                                     <p style="color: #666666; font-size: 16px; line-height: 1.5; text-align: center;">
                                         Campuslands <br>
-                                        Anillo Vial Floridablanca - Girón Km 3.9 <br>
-                                        Edificio Zenith, Piso 6 <br>
-                                        Zona Franca Santander <br>
                                         Floridablanca, Santander
+                                        Anillo Vial Floridablanca - Girón Km 3.9 <br>
+                                        Zona Franca Santander <br>
+                                        Edificio Zenith, Piso 6
                                     </p>
 
                                     <h2 style="color: #007bff; font-size: 18px; text-align: center;">Beneficios exclusivos de este curso:</h2>

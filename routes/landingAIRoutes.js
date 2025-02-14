@@ -1,12 +1,16 @@
 const express = require("express");
 const landingAIController = require("../controllers/landingAIController");
-const WelcomeEmailController = require("../controllers/welcomeEmailController");
+const welcomeEmailController = require("../controllers/welcomeEmailController");
+const notificationEmailController = require("../controllers/notificationEmailController");
 const router = express.Router();
 
 //Guardar registros exitosos al curso
 router.post("/register", landingAIController.saveRegisteredInfo);
 
 //Enviar correo de bienvenida
-router.post("/send-welcome-email", WelcomeEmailController.sendWelcomeEmail)
+router.post("/send-welcome-email", welcomeEmailController.sendWelcomeEmail);
+
+//Enviar notificación por correo
+router.post("/send-notification-email", notificationEmailController.sendNotificationEmail);
 
 module.exports = router;
