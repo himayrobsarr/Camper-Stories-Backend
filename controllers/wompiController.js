@@ -3,49 +3,63 @@ const conexion = require('../helpers/conexion');
 const PaymentModel = require("../models/paymentModel");
 const DonationModel = require("../models/donationModel");
 const SponsorModel = require("../models/sponsorModel");
-const INTEGRITY_KEY = process.env.WOMPI_INTEGRITY_KEY;
-const bcrypt = require('bcrypt');
-const PasswordResetController = require('./passwordResetController');
+const PlanModel = require("../models/planModel");
+const WompiService = require("../services/wompiService");
 
-/**
- * Función para generar la firma
- */
-function generateSignatureHelper(reference, amountInCents, currency) {
-    if (!INTEGRITY_KEY) {
-        throw new Error("INTEGRITY_KEY no está configurada.");
+class WompiController {
+    constructor() {
+        this.INTEGRITY_KEY = process.env.WOMPI_INTEGRITY_KEY;
+        this.validateEnvironmentVars();
     }
 
-    // Normalizar los valores
-    const cleanReference = reference.toString();
-    const cleanAmount = amountInCents.toString();
-    const cleanCurrency = currency.toUpperCase();
+    validateEnvironmentVars() {
+        const requiredEnvVars = [
+            'WOMPI_INTEGRITY_KEY',
+            'WOMPI_PUBLIC_KEY',
+            'WOMPI_PLAN_ID'
+        ];
 
-    // Crear el string a firmar
-    const stringToSign = `${cleanReference}${cleanAmount}${cleanCurrency}${INTEGRITY_KEY}`;
+        requiredEnvVars.forEach(varName => {
+            if (!process.env[varName]) {
+                throw new Error(`Missing required environment variable: ${varName}`);
+            }
+        });
+    }
 
-    // Generar el hash SHA-256
-    return crypto.createHash("sha256").update(stringToSign, 'utf8').digest("hex");
-}
+    generateSignatureHelper(reference, amountInCents, currency) {
+        if (!this.INTEGRITY_KEY) {
+            throw new Error("INTEGRITY_KEY no está configurada.");
+        }
 
-const WompiController = {
-    generateSignature: async (req, res) => {
+        // Normalizar los valores
+        const cleanReference = reference.toString();
+        const cleanAmount = amountInCents.toString();
+        const cleanCurrency = currency.toUpperCase();
+
+        // Crear el string a firmar
+        const stringToSign = `${cleanReference}${cleanAmount}${cleanCurrency}${this.INTEGRITY_KEY}`;
+
+        // Generar el hash SHA-256
+        return crypto.createHash("sha256").update(stringToSign, 'utf8').digest("hex");
+    }
+
+    async generateSignature(req, res) {
         try {
             const { reference, amountInCents, currency } = req.body;
+            
             if (!reference || !amountInCents || !currency) {
                 return res.status(400).json({ error: "Faltan datos requeridos" });
             }
 
-            const signature = generateSignatureHelper(reference, amountInCents, currency);
+            const signature = this.generateSignatureHelper(reference, amountInCents, currency);
             return res.status(200).json({ signature });
         } catch (error) {
             console.error("Error generando la firma:", error);
             return res.status(500).json({ error: "Error interno del servidor" });
         }
-    },
-    /**
-     * Guarda la información del pago y genera la firma
-     */
-    savePaymentInfo: async (req, res) => {
+    }
+
+    async savePaymentInfo(req, res) {
         let connection;
         try {
             connection = (await conexion.getConexion()).connection;
@@ -64,7 +78,7 @@ const WompiController = {
                     'SELECT u.id FROM USER u WHERE u.email = ? AND u.role_id = 2',
                     [paymentData.customerData.email]
                 );
-                
+
                 if (existingSponsor.length > 0) {
                     sponsorId = existingSponsor[0].id;
                 }
@@ -99,7 +113,7 @@ const WompiController = {
             });
 
             await connection.commit();
-            
+
             return res.status(200).json({
                 message: "Datos guardados correctamente.",
                 payment,
@@ -111,15 +125,84 @@ const WompiController = {
         } catch (error) {
             if (connection) {
                 await connection.rollback();
-                connection.release();
             }
             console.error("Error en savePaymentInfo:", error);
             return res.status(500).json({ error: "Error interno del servidor." });
+        } finally {
+            if (connection) {
+                connection.release();
+            }
         }
     }
-};
 
+    async initSubscription(req, res) {
+        try {
+            const { planId, customerData } = req.body;
+
+            if (!planId || !customerData) {
+                return res.status(400).json({ error: 'Datos incompletos' });
+            }
+
+            const plan = await PlanModel.findById(planId);
+            if (!plan) {
+                return res.status(404).json({ error: 'Plan no encontrado' });
+            }
+
+            const reference = `SUB_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+            return res.status(200).json({
+                reference,
+                amountInCents: plan.price * 100,
+                publicKey: process.env.WOMPI_PUBLIC_KEY,
+                installments: plan.installments || 12
+            });
+        } catch (error) {
+            console.error('Error en initSubscription:', error);
+            return res.status(500).json({ error: 'Error interno del servidor' });
+        }
+    }
+
+    async processSubscription(req, res) {
+        try {
+            const { transactionId, payment_source_id, acceptance_token, status, reference } = req.body;
+
+            if (!transactionId || !payment_source_id || !acceptance_token || !status || !reference) {
+                return res.status(400).json({ error: 'Datos incompletos en la respuesta de Wompi' });
+            }
+
+            if (status !== 'APPROVED') {
+                return res.status(400).json({ error: 'Pago no aprobado' });
+            }
+
+            const subscription = await WompiService.createRecurringPayment({
+                payment_source_id,
+                acceptance_token,
+                plan_id: process.env.WOMPI_PLAN_ID,
+                customer_data: req.body.customer_data || {}
+            });
+
+            if (!subscription || !subscription.id) {
+                throw new Error('Error al crear la suscripción en Wompi');
+            }
+
+            await SponsorModel.createWithSubscription({
+                subscription_id: subscription.id,
+                transaction_id: transactionId,
+                reference,
+                status: subscription.status
+            });
+
+            return res.status(200).json({ subscription });
+        } catch (error) {
+            console.error('Error en processSubscription:', error);
+            return res.status(500).json({ error: 'Error interno del servidor' });
+        }
+    }
+}
+
+// Exportar la clase directamente
 module.exports = WompiController;
+
 
 // const crypto = require("crypto");
 // const PaymentModel = require("../models/paymentModel");

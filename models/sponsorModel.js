@@ -6,8 +6,8 @@ const PasswordResetController = require('../controllers/passwordResetController'
 
 class SponsorModel {
 
-        static async getAllSponsors() {
-            const query = `
+    static async getAllSponsors() {
+        const query = `
                 SELECT 
                     s.id,
                     s.user_id,
@@ -30,55 +30,55 @@ class SponsorModel {
                 LEFT JOIN CITY c ON u.city_id = c.id
                 LEFT JOIN PLAN p ON s.plan_id = p.id
             `;
-        
-            try {
-                const result = await db.query(query);
-                const rows = result.data;
-    
-                if (!Array.isArray(rows)) {
-                    throw new Error('Se esperaba un array de resultados dentro de `data`');
-                }
-        
-                return rows;
-            } catch (error) {
-                console.error('Error en getAllSponsors:', error.message);
-                throw new Error(`Error en la consulta de sponsors: ${error.message}`);
-            }
-        }
 
-    
-        static async createSponsor(sponsorData) {
-            try {
-                const query = `
+        try {
+            const result = await db.query(query);
+            const rows = result.data;
+
+            if (!Array.isArray(rows)) {
+                throw new Error('Se esperaba un array de resultados dentro de `data`');
+            }
+
+            return rows;
+        } catch (error) {
+            console.error('Error en getAllSponsors:', error.message);
+            throw new Error(`Error en la consulta de sponsors: ${error.message}`);
+        }
+    }
+
+
+    static async createSponsor(sponsorData) {
+        try {
+            const query = `
                     INSERT INTO USER (
                         first_name, last_name, email, password,
                         document_type_id, document_number, city_id,
                         birth_date, role, image_url
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'sponsor', NULL)`;
-                    
-                const params = [
-                    sponsorData.first_name,
-                    sponsorData.last_name,
-                    sponsorData.email,
-                    sponsorData.password,
-                    sponsorData.document_type_id,
-                    sponsorData.document_number,
-                    sponsorData.city_id,
-                    sponsorData.birth_date
-                ];
-        
-                const result = await db.query(query, params);
-                return {
-                    id: result.insertId,
-                    ...sponsorData,
-                    role: 'sponsor',
-                    password: undefined
-                };
-            } catch (error) {
-                console.error('Error en createSponsor:', error);
-                throw error;
-            }
+
+            const params = [
+                sponsorData.first_name,
+                sponsorData.last_name,
+                sponsorData.email,
+                sponsorData.password,
+                sponsorData.document_type_id,
+                sponsorData.document_number,
+                sponsorData.city_id,
+                sponsorData.birth_date
+            ];
+
+            const result = await db.query(query, params);
+            return {
+                id: result.insertId,
+                ...sponsorData,
+                role: 'sponsor',
+                password: undefined
+            };
+        } catch (error) {
+            console.error('Error en createSponsor:', error);
+            throw error;
         }
+    }
 
     static async updateUser(user_id, userData, requestingUserId, userRole) {
         try {
@@ -86,7 +86,7 @@ class SponsorModel {
             if (requestingUserId !== user_id && userRole !== 'admin') {
                 throw new Error('No tienes permisos para actualizar este usuario');
             }
-    
+
             // Preparar los campos a actualizar
             const updates = {};
             if (userData.first_name !== undefined) updates.first_name = userData.first_name;
@@ -102,15 +102,15 @@ class SponsorModel {
             if (userData.document_number !== undefined) updates.document_number = userData.document_number;
             if (userData.city_id !== undefined) updates.city_id = userData.city_id;
             if (userData.birth_date !== undefined) updates.birth_date = userData.birth_date;
-    
+
             // Actualizar el usuario en la base de datos
             const query = "UPDATE USER SET ? WHERE id = ?";
             const result = await db.query(query, [updates, user_id]);
-    
+
             if (result.affectedRows === 0) {
                 throw new Error('Usuario no encontrado o no actualizado');
             }
-    
+
             // Recuperar los datos actualizados del usuario
             const getUserQuery = `
                 SELECT id, first_name, last_name, email, image_url, document_type_id, document_number, city_id, birth_date
@@ -119,7 +119,7 @@ class SponsorModel {
             `;
             const userResult = await db.query(getUserQuery, [user_id]);
             const updatedUser = userResult.data[0];
-    
+
             return {
                 message: 'Usuario actualizado exitosamente',
                 data: updatedUser
@@ -173,7 +173,7 @@ class SponsorModel {
 
     static async deleteSponsor(id) {
         const query = `DELETE FROM USER WHERE id = ? AND role = 'sponsor'`;
-        
+
         try {
             const result = await db.query(query, [id]); // Ejecuta la consulta para eliminar el sponsor
 
