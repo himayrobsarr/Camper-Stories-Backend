@@ -22,8 +22,69 @@ const landingAIModel = {
         console.error("Error al insertar en la base de datos:", error.message);
         throw error;
       }
+    },
+
+    getAllRegistered: async () => {
+        try {
+            const query = `
+                SELECT 
+                    id,
+                    name,
+                    lastname,
+                    email,
+                    phone,
+                    document,
+                    payment_reference,
+                    payment_date,
+                    selected_course,
+                    created_at
+                FROM INSCRIPCIONES_IA
+                ORDER BY created_at DESC
+            `;
+
+            const { status, data } = await db.query(query);
+            
+            if (status === 200) {
+                return data;
+            } else {
+                throw new Error("Error al obtener los registros de la base de datos");
+            }
+        } catch (error) {
+            console.error("Error al consultar la base de datos:", error.message);
+            throw error;
+        }
+    },
+
+    getRegisteredById: async (id) => {
+        try {
+            const query = `
+                SELECT 
+                    id,
+                    name,
+                    lastname,
+                    email,
+                    phone,
+                    document,
+                    payment_reference,
+                    payment_date,
+                    selected_course,
+                    created_at
+                FROM INSCRIPCIONES_IA
+                WHERE id = ?
+            `;
+
+            const { status, data } = await db.query(query, [id]);
+            
+            if (status === 200) {
+                return data[0] || null;
+            } else {
+                throw new Error("Error al obtener el registro de la base de datos");
+            }
+        } catch (error) {
+            console.error("Error al consultar la base de datos:", error.message);
+            throw error;
+        }
     }
-  };
-  
+};
 
 module.exports = landingAIModel;
