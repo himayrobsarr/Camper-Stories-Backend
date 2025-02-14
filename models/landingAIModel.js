@@ -8,7 +8,7 @@ const landingAIModel = {
   
         const query = `
           INSERT INTO INSCRIPCIONES_IA (name, lastname, email, phone, document, payment_reference, payment_date, selected_course)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         `;
         const values = [name, lastname, email, phone, document, payment_reference, formattedDate, selected_course];
   
