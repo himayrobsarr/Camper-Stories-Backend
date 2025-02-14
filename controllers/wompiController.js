@@ -51,7 +51,35 @@ const WompiController = {
             connection = (await conexion.getConexion()).connection;
             const paymentData = req.body;
 
-            // 1. Primero crear el payment sin sponsor_id
+            if (!paymentData || !paymentData.reference || !paymentData.amountInCents || !paymentData.currency) {
+                return res.status(400).json({ error: "Datos incompletos en la solicitud." });
+            }
+
+            await connection.beginTransaction();
+
+            // 1. Verificar si el sponsor ya existe por email
+            let sponsorId = null;
+            if (paymentData.customerData && paymentData.customerData.email) {
+                const [existingSponsor] = await connection.query(
+                    'SELECT u.id FROM USER u WHERE u.email = ? AND u.role_id = 2',
+                    [paymentData.customerData.email]
+                );
+                
+                if (existingSponsor.length > 0) {
+                    sponsorId = existingSponsor[0].id;
+                }
+            }
+
+            // 2. Si no existe el sponsor y el pago está aprobado, crearlo
+            if (!sponsorId && paymentData.status === 'APPROVED' && paymentData.customerData) {
+                const sponsor = await SponsorModel.createSponsorWithRelations({
+                    ...paymentData.customerData,
+                    plan_id: paymentData.plan_id
+                });
+                sponsorId = sponsor.id;
+            }
+
+            // 3. Crear el payment con el sponsor_id (si existe)
             const payment = await PaymentModel.create({
                 reference: paymentData.reference,
                 amount: paymentData.amountInCents,
@@ -59,33 +87,27 @@ const WompiController = {
                 transaction_id: paymentData.transaction_id,
                 payment_status: paymentData.status,
                 payment_method: paymentData.paymentMethodType,
-                sponsor_id: null,  // Inicialmente null
-                user_id: null
+                sponsor_id: sponsorId
             });
-
-            // 2. Si el pago es aprobado, crear el sponsor
-            if (paymentData.status === 'APPROVED') {
-                const sponsor = await SponsorModel.createSponsorWithRelations({
-                    ...paymentData.customerData,
-                    plan_id: paymentData.plan_id
-                });
-
-                // 3. Actualizar el payment con el sponsor_id
-                await PaymentModel.update(payment.id, { sponsor_id: sponsor.id });
-            }
 
             // 4. Crear la donación
             const donation = await DonationModel.create({
                 payment_id: payment.id,
                 amount: paymentData.amountInCents,
-                message: paymentData.customerData.message || ''
+                message: paymentData.customerData?.message || '',
+                user_id: sponsorId
             });
 
-            res.status(200).json({
-                message: "Datos guardados correctamente",
+            await connection.commit();
+            
+            return res.status(200).json({
+                message: "Datos guardados correctamente.",
                 payment,
-                donation
+                donation,
+                sponsor_created: !sponsorId ? true : false,
+                sponsor_existed: sponsorId ? true : false
             });
+
         } catch (error) {
             if (connection) {
                 await connection.rollback();
