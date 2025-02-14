@@ -15,8 +15,7 @@ class WompiController {
     validateEnvironmentVars() {
         const requiredEnvVars = [
             'WOMPI_INTEGRITY_KEY',
-            'WOMPI_PUBLIC_KEY',
-            'WOMPI_PLAN_ID'
+            'WOMPI_PUBLIC_KEY'
         ];
 
         requiredEnvVars.forEach(varName => {
@@ -42,7 +41,7 @@ class WompiController {
         // Generar el hash SHA-256
         return crypto.createHash("sha256").update(stringToSign, 'utf8').digest("hex");
     }
-
+                              
     async generateSignature(req, res) {
         try {
             const { reference, amountInCents, currency } = req.body;
@@ -152,7 +151,7 @@ class WompiController {
 
             return res.status(200).json({
                 reference,
-                amountInCents: plan.price * 100, 
+                amountInCents: parseInt(plan.main_price, 10) * 100, 
                 publicKey: process.env.WOMPI_PUBLIC_KEY,
                 installments: plan.installments || 12 // plan.installments no existe en la base de datos
             });

@@ -2,7 +2,7 @@ const axios = require('axios');
 
 class WompiService {
     constructor() {
-        this.apiUrl = process.env.WOMPI_API_URL || 'https://sandbox.wompi.co/v1';
+        this.apiUrl = process.env.WOMPI_API_URL ;
         this.privateKey = process.env.WOMPI_PRIVATE_KEY;
         this.publicKey = process.env.WOMPI_PUBLIC_KEY;
 
