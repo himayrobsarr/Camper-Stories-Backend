@@ -9,32 +9,37 @@ class SponsorModel {
         static async getAllSponsors() {
             const query = `
                 SELECT 
-                    s.id AS user_id,
-                    s.first_name,
-                    s.last_name,
-                    s.email,
+                    s.id,
+                    s.user_id,
+                    s.image_url,
+                    s.plan_id,
+                    s.status,
+                    u.first_name,
+                    u.last_name,
+                    u.email,
+                    u.document_type_id,
                     dt.name AS document_type,
-                    s.document_number,
-                    c.name AS city,
-                    s.birth_date 
-                FROM USER s
-                LEFT JOIN DOCUMENT_TYPE dt ON s.document_type_id = dt.id
-                LEFT JOIN CITY c ON s.city_id = c.id
-                WHERE s.role = 'sponsor'
+                    u.document_number,
+                    u.city_id,
+                    c.name AS city_name,
+                    u.birth_date,
+                    p.main_price as plan_price
+                FROM SPONSOR s
+                INNER JOIN USER u ON s.user_id = u.id
+                LEFT JOIN DOCUMENT_TYPE dt ON u.document_type_id = dt.id
+                LEFT JOIN CITY c ON u.city_id = c.id
+                LEFT JOIN PLAN p ON s.plan_id = p.id
             `;
         
             try {
-                const result = await db.query(query); // Ejecuta la consulta y obtiene el resultado
-                console.log('Resultado de la consulta:', result); // Log de lo que devuelve la consulta
-        
-                // Accedemos a la propiedad `data` que contiene el array de filas
+                const result = await db.query(query);
                 const rows = result.data;
     
                 if (!Array.isArray(rows)) {
                     throw new Error('Se esperaba un array de resultados dentro de `data`');
                 }
         
-                return rows; // Retorna las filas
+                return rows;
             } catch (error) {
                 console.error('Error en getAllSponsors:', error.message);
                 throw new Error(`Error en la consulta de sponsors: ${error.message}`);
@@ -128,30 +133,38 @@ class SponsorModel {
     static async getSponsorById(id) {
         const query = `
             SELECT 
-                s.id AS user_id,
-                s.first_name,
-                s.last_name,
-                s.email,
+                s.id,
+                s.user_id,
+                s.image_url,
+                s.plan_id,
+                s.status,
+                u.first_name,
+                u.last_name,
+                u.email,
+                u.document_type_id,
                 dt.name AS document_type,
-                s.document_number,
-                c.name AS city,
-                s.birth_date,
-                s.role
-            FROM USER s
-            LEFT JOIN DOCUMENT_TYPE dt ON s.document_type_id = dt.id
-            LEFT JOIN CITY c ON s.city_id = c.id
-            WHERE s.id = ? AND s.role = 'sponsor'
+                u.document_number,
+                u.city_id,
+                c.name AS city_name,
+                u.birth_date,
+                p.main_price as plan_price
+            FROM SPONSOR s
+            INNER JOIN USER u ON s.user_id = u.id
+            LEFT JOIN DOCUMENT_TYPE dt ON u.document_type_id = dt.id
+            LEFT JOIN CITY c ON u.city_id = c.id
+            LEFT JOIN PLAN p ON s.plan_id = p.id
+            WHERE s.id = ?
         `;
 
         try {
-            const result = await db.query(query, [id]); // Ejecuta la consulta y obtiene el resultado
+            const result = await db.query(query, [id]);
             const rows = result.data;
 
             if (!Array.isArray(rows) || rows.length === 0) {
-                return null; // Retorna null si no se encuentra el sponsor
+                return null;
             }
 
-            return rows[0]; // Retorna el primer sponsor encontrado
+            return rows[0];
         } catch (error) {
             console.error('Error en getSponsorById:', error.message);
             throw new Error(`Error en la consulta del sponsor: ${error.message}`);

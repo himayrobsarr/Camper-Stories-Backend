@@ -105,19 +105,17 @@ class SponsorController {
     }
 
     static async getById(req, res) {
-        const { id } = req.params; // Obtener el ID del sponsor de los parámetros de la solicitud
+        const { id } = req.params;
 
         try {
-            const sponsor = await SponsorModel.getSponsorById(id); // Llamar al modelo para obtener el sponsor por ID
+            const sponsor = await SponsorModel.getSponsorById(id);
 
-            // Verificar si el sponsor existe y si es un sponsor
-            if (!sponsor || sponsor.role !== 'sponsor') {
+            if (!sponsor) {
                 return res.status(404).json({
-                    message: 'Sponsor no encontrado o no es un sponsor'
+                    message: 'Sponsor no encontrado'
                 });
             }
 
-            // Responder con los datos del sponsor
             res.status(200).json({
                 message: 'Sponsor encontrado exitosamente',
                 data: sponsor
