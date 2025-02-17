@@ -135,10 +135,10 @@ class WompiController {
         }
     }
 
-    async initSubscription(req, res) {
+    static async initSubscription(req, res) {
         try {
-            const { planId, customerData } = req.body;
-            const userId = req.user.id;
+            const { planId } = req.body;
+            const userId = req.user.id; // Del middleware de autenticación
 
             // Validar que existe el plan
             const plan = await PlanModel.findById(planId);
@@ -149,97 +149,99 @@ class WompiController {
                 });
             }
 
+            // Verificar que el usuario es un sponsor
+            const sponsor = await SponsorModel.findByUserId(userId);
+            if (!sponsor) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Usuario no es un sponsor'
+                });
+            }
+
             // Crear referencia única
-            const reference = `SUB-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+            const reference = `SUB-${userId}-${Date.now()}-${Math.random().toString(36).substring(7)}`;
 
-            // Preparar datos iniciales de la suscripción
-            const subscriptionData = {
-                user_id: userId,
-                plan_id: planId,
-                sponsor_id: req.user.sponsor_id, // Agregamos sponsor_id
-                reference: reference,
-                status: 'pending',
-                payment_source_id: null // Se actualizará después
-            };
+            // Guardar referencia temporal
+            await SubscriptionModel.saveInitialReference({
+                reference,
+                planId,
+                userId
+            });
 
-            // Guardar suscripción inicial
-            await SubscriptionModel.create(subscriptionData);
-
-            // Retornar datos para el widget
-            res.json({
+            // Retornar datos para el widget de Wompi
+            return res.status(200).json({
                 success: true,
-                data: {
-                    reference: reference,
-                    publicKey: process.env.WOMPI_PUBLIC_KEY,
-                    redirectUrl: `${process.env.FRONTEND_URL}/subscription/callback`,
-                    amountInCents: Math.round(plan.main_price * 100), // Usando main_price de tu tabla PLAN
-                    currency: 'COP',
-                    planDetails: {
-                        id: plan.id,
-                        name: plan.name || 'Plan Premium',
-                        price: plan.main_price
-                    }
-                }
+                reference,
+                publicKey: process.env.WOMPI_PUBLIC_KEY,
+                redirectUrl: `${process.env.FRONTEND_URL}/subscription/callback`,
+                amountInCents: Math.round(plan.main_price * 100),
+                currency: 'COP'
             });
 
         } catch (error) {
             console.error('Error en initSubscription:', error);
-            res.status(500).json({
+            return res.status(500).json({
                 success: false,
                 error: error.message || 'Error al iniciar la suscripción'
             });
         }
     }
 
-    async processSubscription(req, res) {
+    static async processSubscription(req, res) {
         try {
-            const {
-                payment_source_id,
-                acceptance_token,
-                status,
-                reference
-            } = req.body;
+            const { id, status, reference } = req.body;
 
-            // Buscar la suscripción por referencia
-            const subscription = await SubscriptionModel.findByReference(reference);
+            const subscription = await SubscriptionModel.getByReference(reference);
             if (!subscription) {
-                throw new Error('Suscripción no encontrada');
+                return res.status(404).json({
+                    success: false,
+                    error: 'Suscripción no encontrada'
+                });
             }
 
+            // Actualizar estado de la suscripción
+            await SubscriptionModel.updateStatus(reference, status);
+
+            // Si la transacción fue exitosa, actualizar el plan del sponsor
             if (status === 'APPROVED') {
-                // Crear suscripción recurrente en Wompi
-                const recurringPayment = await WompiService.createRecurringPayment({
-                    payment_source_id,
-                    acceptance_token,
-                    customer_data: {
-                        email: subscription.email // Del JOIN con USER
+                await SponsorModel.updatePlan(
+                    subscription.user_id, 
+                    subscription.plan_id,
+                    {
+                        startDate: new Date(),
+                        status: 'activo'
                     }
-                });
-
-                // Actualizar la suscripción con los datos de Wompi
-                await SubscriptionModel.updateStatus(subscription.id, {
-                    status: 'active',
-                    payment_source_id,
-                    subscription_id: recurringPayment.id
-                });
-
-                res.json({
-                    success: true,
-                    message: 'Suscripción procesada exitosamente',
-                    data: recurringPayment
-                });
-            } else {
-                await SubscriptionModel.updateStatus(subscription.id, {
-                    status: 'failed'
-                });
-                throw new Error('El pago no fue aprobado');
+                );
             }
+
+            return res.status(200).json({
+                success: true,
+                message: 'Suscripción procesada exitosamente',
+                status: status.toLowerCase()
+            });
 
         } catch (error) {
             console.error('Error en processSubscription:', error);
-            res.status(500).json({
+            return res.status(500).json({
                 success: false,
                 error: error.message || 'Error al procesar la suscripción'
+            });
+        }
+    }
+
+    static async handleWebhook(req, res) {
+        try {
+            const event = req.body;
+            
+            // Aquí procesarías los eventos de Wompi
+            console.log('Webhook recibido:', event);
+
+            return res.status(200).json({ received: true });
+        } catch (error) {
+            console.error('Error en webhook:', error);
+            return res.status(500).json({
+                success: false,
+                error: error.message
             });
         }
     }

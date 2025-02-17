@@ -1,108 +1,75 @@
 const axios = require('axios');
+const crypto = require('crypto');
+const SubscriptionModel = require('../models/subscriptionModel');
 
 class WompiService {
     constructor() {
-        this.apiUrl = process.env.WOMPI_API_URL ;
-        this.privateKey = process.env.WOMPI_PRIVATE_KEY;
-        this.publicKey = process.env.WOMPI_PUBLIC_KEY;
-
-        if (!this.privateKey || !this.publicKey) {
-            throw new Error('Wompi keys no configuradas');
-        }
+        this.apiKey = process.env.WOMPI_PRIVATE_KEY;
+        this.baseUrl = process.env.WOMPI_API_URL;
     }
 
-    async createRecurringPayment(data) {
+    static verifyWebhookSignature(req) {
+        const signature = req.headers['x-wompi-signature'];
+        const webhookKey = process.env.WOMPI_WEBHOOK_KEY;
+        
+        const hash = crypto
+            .createHmac('sha256', webhookKey)
+            .update(JSON.stringify(req.body))
+            .digest('hex');
+        
+        return signature === hash;
+    }
+
+    static async handleSubscriptionCreated(data) {
         try {
-            // 1. Crear la fuente de pago
-            const paymentSourceResponse = await axios.post(
-                `${this.apiUrl}/payment_sources`,
-                {
-                    type: 'CARD',
-                    token: data.payment_source_id,
-                    customer_email: data.customer_data.email,
-                    acceptance_token: data.acceptance_token
-                },
-                {
-                    headers: {
-                        'Authorization': `Bearer ${this.privateKey}`,
-                        'Content-Type': 'application/json'
-                    }
-                }
-            );
-
-            if (!paymentSourceResponse.data.data.id) {
-                throw new Error('Error al crear la fuente de pago');
-            }
-
-            // 2. Crear la suscripción
-            const subscriptionResponse = await axios.post(
-                `${this.apiUrl}/subscriptions`,
-                {
-                    payment_source_id: paymentSourceResponse.data.data.id,
-                    plan_id: process.env.WOMPI_PLAN_ID,
-                    customer_email: data.customer_data.email
-                },
-                {
-                    headers: {
-                        'Authorization': `Bearer ${this.privateKey}`,
-                        'Content-Type': 'application/json'
-                    }
-                }
-            );
-
-            return subscriptionResponse.data.data;
-
+            const { subscription } = data;
+            await SubscriptionModel.updateStatus(subscription.reference, 'active');
         } catch (error) {
-            console.error('Error detallado:', error.response?.data);
-            throw new Error(
-                error.response?.data?.error_message || 
-                'Error al crear la suscripción'
-            );
+            console.error('Error handling subscription created:', error);
+            throw error;
         }
     }
 
-    async cancelSubscription(subscriptionId) {
+    static async handleSubscriptionUpdated(data) {
+        try {
+            const { subscription } = data;
+            await SubscriptionModel.updateStatus(
+                subscription.reference, 
+                subscription.status.toLowerCase()
+            );
+        } catch (error) {
+            console.error('Error handling subscription updated:', error);
+            throw error;
+        }
+    }
+
+    static async handleSubscriptionCancelled(data) {
+        try {
+            const { subscription } = data;
+            await SubscriptionModel.updateStatus(subscription.reference, 'cancelled');
+        } catch (error) {
+            console.error('Error handling subscription cancelled:', error);
+            throw error;
+        }
+    }
+
+    static async createSubscription(data) {
         try {
             const response = await axios.post(
-                `${this.apiUrl}/subscriptions/${subscriptionId}/cancel`,
-                {},
+                `${process.env.WOMPI_API_URL}/subscriptions`,
+                data,
                 {
                     headers: {
-                        'Authorization': `Bearer ${this.privateKey}`,
-                        'Content-Type': 'application/json'
+                        'Authorization': `Bearer ${process.env.WOMPI_PRIVATE_KEY}`
                     }
                 }
             );
-
-            return response.data.data;
+            return response.data;
         } catch (error) {
-            throw new Error(
-                error.response?.data?.error_message || 
-                'Error al cancelar la suscripción'
-            );
-        }
-    }
-
-    async getSubscription(subscriptionId) {
-        try {
-            const response = await axios.get(
-                `${this.apiUrl}/subscriptions/${subscriptionId}`,
-                {
-                    headers: {
-                        'Authorization': `Bearer ${this.privateKey}`
-                    }
-                }
-            );
-
-            return response.data.data;
-        } catch (error) {
-            throw new Error(
-                error.response?.data?.error_message || 
-                'Error al obtener la suscripción'
-            );
+            console.error('Error creating subscription in Wompi:', error);
+            throw error;
         }
     }
 }
 
-// Exportar una instancia
-module.exports = new WompiService();
+module.exports = WompiService;

@@ -13,26 +13,33 @@ class PlanModel {
      */
     async findById(id) {
         try {
-            const { connection } = await conexion.getConexion();
+            const query = `
+                SELECT 
+                    p.id,
+                    p.main_price,
+                    GROUP_CONCAT(b.description) as benefits
+                FROM ${this.table} p
+                LEFT JOIN PLAN_HAS_BENEFIT phb ON p.id = phb.plan_id
+                LEFT JOIN BENEFIT b ON phb.benefit_id = b.id
+                WHERE p.id = ?
+                GROUP BY p.id
+            `;
             
-            try {
-                const [rows] = await connection.query(
-                    `SELECT id, main_price 
-                     FROM ${this.table} 
-                     WHERE id = ?`,
-                    [id]
-                );
-
-                return rows.length > 0 ? rows[0] : null;
-            } catch (error) {
-                console.error('Error en findById:', error);
-                throw new Error(`Error al buscar el plan: ${error.message}`);
-            } finally {
-                if (connection) connection.release();
+            const result = await conexion.query(query, [id]);
+            
+            if (!result.data || result.data.length === 0) {
+                return null;
             }
+            
+            const plan = result.data[0];
+            return {
+                id: plan.id,
+                main_price: plan.main_price,
+                benefits: plan.benefits ? plan.benefits.split(',') : []
+            };
         } catch (error) {
-            console.error('Error de conexión en findById:', error);
-            throw new Error(`Error de conexión: ${error.message}`);
+            console.error('Error en findById:', error);
+            throw new Error(`Error al buscar el plan: ${error.message}`);
         }
     }
 
@@ -41,27 +48,28 @@ class PlanModel {
      * @returns {Promise<Array>} Lista de planes
      * @throws {Error} Si hay un error en la consulta
      */
-    async findAll() {
+    async getAllPlans() {
         try {
-            const { connection } = await conexion.getConexion();
+            const query = `
+                SELECT 
+                    p.id,
+                    p.main_price,
+                    GROUP_CONCAT(b.description) as benefits
+                FROM ${this.table} p
+                LEFT JOIN PLAN_HAS_BENEFIT phb ON p.id = phb.plan_id
+                LEFT JOIN BENEFIT b ON phb.benefit_id = b.id
+                GROUP BY p.id
+            `;
             
-            try {
-                const [rows] = await connection.query(
-                    `SELECT id, main_price 
-                     FROM ${this.table} 
-                     ORDER BY id ASC`
-                );
-
-                return rows;
-            } catch (error) {
-                console.error('Error en findAll:', error);
-                throw new Error(`Error al obtener los planes: ${error.message}`);
-            } finally {
-                if (connection) connection.release();
-            }
+            const result = await conexion.query(query);
+            return result.data.map(plan => ({
+                id: plan.id,
+                main_price: plan.main_price,
+                benefits: plan.benefits ? plan.benefits.split(',') : []
+            }));
         } catch (error) {
-            console.error('Error de conexión en findAll:', error);
-            throw new Error(`Error de conexión: ${error.message}`);
+            console.error('Error en getAllPlans:', error);
+            throw new Error(`Error al obtener los planes: ${error.message}`);
         }
     }
 
@@ -141,6 +149,44 @@ class PlanModel {
         } catch (error) {
             console.error('Error de conexión en update:', error);
             throw new Error(`Error de conexión: ${error.message}`);
+        }
+    }
+
+    async getPlanWithBenefits(id) {
+        try {
+            const query = `
+                SELECT 
+                    p.id,
+                    p.main_price,
+                    b.id as benefit_id,
+                    b.description as benefit_description
+                FROM ${this.table} p
+                LEFT JOIN PLAN_HAS_BENEFIT phb ON p.id = phb.plan_id
+                LEFT JOIN BENEFIT b ON phb.benefit_id = b.id
+                WHERE p.id = ?
+            `;
+            
+            const result = await conexion.query(query, [id]);
+            
+            if (!result.data || result.data.length === 0) {
+                return null;
+            }
+
+            const benefits = result.data
+                .filter(row => row.benefit_id)
+                .map(row => ({
+                    id: row.benefit_id,
+                    description: row.benefit_description
+                }));
+
+            return {
+                id: result.data[0].id,
+                main_price: result.data[0].main_price,
+                benefits
+            };
+        } catch (error) {
+            console.error('Error en getPlanWithBenefits:', error);
+            throw new Error(`Error al obtener el plan con beneficios: ${error.message}`);
         }
     }
 }

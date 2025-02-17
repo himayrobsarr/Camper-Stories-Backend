@@ -1,33 +1,15 @@
 const express = require("express");
 const router = express.Router();
 const WompiController = require("../controllers/wompiController");
+const authMiddleware = require("../middlewares/authMiddleware");
 
-// Instanciar el controlador
-const wompiController = new WompiController();
+// Rutas para suscripciones
+router.post("/init-subscription", authMiddleware, WompiController.initSubscription);
+router.post("/process-subscription", WompiController.processSubscription);
+router.post("/webhook", WompiController.handleWebhook);
 
-// Rutas para Wompi
-router.post("/generate-signature", wompiController.generateSignature.bind(wompiController));
-router.post('/save-info', wompiController.savePaymentInfo.bind(wompiController));
-
-
-// {
-//     "planId": 1,
-//     "customerData": {
-//       "email": "cliente@ejemplo.com",
-//       "name": "Cliente Ejemplo"
-//     }
-//   }
-router.post('/init-subscription', wompiController.initSubscription.bind(wompiController));
-router.post('/process-subscription', wompiController.processSubscription.bind(wompiController));
-
-
-
-// // futuras rutas
-
-// router.post("/cancel-subscription/:subscriptionId", authMiddleware, wompiController.cancelSubscription);
-// router.get("/subscription/:subscriptionId", authMiddleware, wompiController.getSubscription);
-
-// Webhooks de Wompi (públicos)
-// router.post("/webhook", wompiController.handleWebhook);
+// Asegúrate de que estos métodos existan en el controlador antes de descomentar estas rutas
+// router.get("/subscription/:id", WompiController.getSubscription);
+// router.post("/cancel-subscription", WompiController.cancelSubscription);
 
 module.exports = router;

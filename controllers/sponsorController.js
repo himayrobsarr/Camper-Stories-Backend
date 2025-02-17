@@ -13,8 +13,7 @@ class SponsorController {
                 'document_type_id',
                 'document_number',
                 'city_id',
-                'birth_date',
-                'plan_id'
+                'birth_date'
             ];
 
             for (const field of requiredFields) {
@@ -33,8 +32,8 @@ class SponsorController {
                 });
             }
 
-            // Crear sponsor con todas sus relaciones
-            const sponsor = await SponsorModel.createSponsorWithRelations(req.body);
+            // Crear sponsor (ahora automáticamente con plan PIONEER)
+            const sponsor = await SponsorModel.createSponsor(req.body);
 
             // Generar token JWT
             const token = jwt.sign(
@@ -48,7 +47,7 @@ class SponsorController {
             );
 
             res.status(201).json({
-                message: 'Sponsor creado exitosamente',
+                message: 'Sponsor creado exitosamente con plan PIONEER',
                 token,
                 sponsor
             });

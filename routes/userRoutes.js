@@ -7,6 +7,8 @@ const router = express.Router();
 // Rutas públicas
 router.post('/login', UserController.login);
 router.post('/register', UserController.create); // Ruta pública para registro
+router.post('/sponsor/register', UserController.createSponsor);
+router.post('/sponsor/login', UserController.login); // Usamos el mismo login
 
 
 // Ruta para cerrar sesión
