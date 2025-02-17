@@ -12,8 +12,9 @@ class DonationModel {
                     message,
                     amount,
                     camper_id,
-                    user_id
-                ) VALUES (?, ?, ?, ?, ?)
+                    user_id,
+                    created_at
+                ) VALUES (?, ?, ?, ?, ?, NOW())
             `;
 
             const params = [
@@ -21,7 +22,8 @@ class DonationModel {
                 donationData.message,
                 donationData.amount,
                 donationData.camper_id,
-                donationData.user_id
+                donationData.user_id,
+                donationData.created_at
             ];
 
             const result = await conexion.query(query, params);
@@ -67,40 +69,40 @@ class DonationModel {
             return result.data || null;
         } catch (error) {
             throw error;
-        } 
+        }
     }
-    
+
     //Obtener donaciones por pago
     static async findByPaymentId(paymentId) {
         try {
             const query = `SELECT * FROM DONATION WHERE payment_id = ?`;
             const result = await conexion.query(query, [paymentId]);
             return result.data || null;
-        } catch (error) {   
+        } catch (error) {
             throw error;
         }
-    }  
-    
+    }
+
     //Obtener todas las donaciones
     static async findAll() {
         try {
             const query = `SELECT * FROM DONATION`;
             const result = await conexion.query(query);
             return result.data;
-        } catch (error) {   
+        } catch (error) {
             throw error;
         }
     }
 
     //Actualizar Donacion
-    static async update(id, donationData){
+    static async update(id, donationData) {
         try {
             await conexion.query('START TRANSACTION');
 
             const updateFields = Object.keys(donationData)
                 .filter(key => donationData[key] !== undefined)
                 .map(key => `${key} = ?`);
-            
+
             if (updateFields.length === 0) throw new Error("No hay campos para actualizar");
 
             const query = `UPDATE DONATION SET ${updateFields.join(', ')} WHERE id = ?`;
@@ -125,6 +127,27 @@ class DonationModel {
             return true;
         } catch (error) {
             await conexion.query('ROLLBACK');
+            throw error;
+        }
+    }
+
+    // Obtener las donaciones de un sponsor, con nombre de camper (si existe)
+    static async findDonationsBySponsorId(sponsorId) {
+        console.log('sponsorId:', sponsorId);
+        try {
+            const query = `
+        SELECT 
+          d.id,
+          d.amount AS monto,
+          DATE_FORMAT(d.created_at, '%Y-%m-%d') AS fecha,
+          c.name AS camper
+        FROM DONATION d
+        LEFT JOIN CAMPER c ON d.camper_id = c.id
+        WHERE d.user_id = ?
+      `;
+            const result = await conexion.query(query, [sponsorId]);
+            return result.data; // arreglo de donaciones
+        } catch (error) {
             throw error;
         }
     }

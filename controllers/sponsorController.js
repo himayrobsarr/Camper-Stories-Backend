@@ -1,4 +1,5 @@
 const SponsorModel = require('../models/sponsorModel');
+const DonationModel = require('../models/donationModel');
 const jwt = require('jsonwebtoken');
 
 class SponsorController {
@@ -93,7 +94,7 @@ class SponsorController {
         const userData = req.body; // Obtener los datos del usuario del cuerpo de la solicitud
         const requestingUserId = req.user.id; // ID del usuario que hace la solicitud
         const userRole = req.user.role; // Rol del usuario que hace la solicitud
-    
+
         try {
             // Llamar al modelo para actualizar el usuario
             const result = await SponsorModel.updateUser(user_id, userData, requestingUserId, userRole);
@@ -189,6 +190,22 @@ class SponsorController {
                 message: 'Error al crear sponsor',
                 error: error.message
             });
+        }
+    }
+
+    // GET /api/sponsors/:sponsorId/donations
+    static async getDonations(req, res) {
+        try {
+            const { sponsorId } = req.params;
+            console.log(req.params);
+            
+            const donations = await DonationModel.findDonationsBySponsorId(sponsorId);
+            console.log("sponsors");
+            
+            return res.json(donations);
+        } catch (error) {
+            console.error(error);
+            return res.status(500).json({ error: 'Error obteniendo donaciones del sponsor' });
         }
     }
 }
