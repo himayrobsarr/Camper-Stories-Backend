@@ -2,13 +2,14 @@ const corsOptions = {
     origin: function (origin, callback) {
         // Lista de orígenes permitidos
         const whitelist = [
-            'http://localhost:3000',    // Frontend en desarrollo
+            'http://localhost:4321',    // Frontend en ASTRO
             'http://localhost:5173',    // Frontend en Vite
             'http://localhost:5174',
             'https://camper-stories.vercel.app' ,    // Tu dominio en producción
             'https://camperstories.vercel.app',
-            'https://admin-camper-stories.vercel.app'
-            
+            'https://admin-camper-stories.vercel.app',
+            'https://campuslands.vercel.app',
+            'https://admin-landing-ia.vercel.app'
         ];
         
         // Permitir peticiones sin origen (como las de Postman)

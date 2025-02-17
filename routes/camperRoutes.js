@@ -6,61 +6,59 @@ const limit = require('../limit/camperLimit');
 const router = express.Router();
 
 /**
- * 1. Rutas específicas relacionadas con estados
- * Estas rutas tienen prefijos específicos que las diferencian y no deberían solaparse.
+ * 1. Rutas globales que no usan parámetros
+ * Estas deben ir PRIMERO para evitar conflictos con rutas parametrizadas
  */
-router.get('/trainees/:campusId', CamperController.getTrainees); // Obtener trainees de un campus
-router.get('/graduates/:campusId', CamperController.getGraduatesByCampus); // Obtener graduados por campus
+router.get('/all/details', CamperController.getAllCampersDetails); // Mover al inicio
+router.post("/", authMiddleware, CamperController.create);
 
 /**
- * 2. Rutas específicas para sueños de campers
- * Estas rutas gestionan los sueños asociados a un usuario.
+ * 2. Rutas específicas relacionadas con estados
  */
-router.get('/:id/dreams', CamperController.getDreamsByCamperId); // Obtener sueños por ID de usuario
-router.post('/:id/dreams', authMiddleware, CamperController.addDreamToCamper); // Agregar un sueño (protegida)
-router.delete('/:id/dreams/:dream_id', authMiddleware, CamperController.deleteDreamFromCamper); // Eliminar un sueño específico (protegida)
+router.get('/trainees/:campusId', CamperController.getTrainees);
+router.get('/graduates/:campusId', CamperController.getGraduatesByCampus);
 
 /**
- * 3. Rutas generales públicas
- * Estas rutas no requieren autenticación y están abiertas para todos los usuarios.
+ * 3. Rutas específicas para sueños de campers
  */
-router.get("/:campusId/campus", CamperController.getAll); // Obtener todos los campers de un campus
-router.get("/:id/details", CamperController.getCamperDetails); // Obtener detalles de un camper por ID
+router.get('/:id/dreams', CamperController.getDreamsByCamperId);
+router.post('/:id/dreams', authMiddleware, CamperController.addDreamToCamper);
+router.delete('/:id/dreams/:dream_id', authMiddleware, CamperController.deleteDreamFromCamper);
 
 /**
- * 4. Rutas relacionadas con videos
- * Gestionan los videos asociados a un usuario.
+ * 4. Rutas generales públicas
  */
-router.get("/:camperId/videos", CamperController.getVideosByCamperId); // Obtener videos por ID de camper
-router.post("/:id/videos", CamperController.addTrainingVideo); // Agregar un video
-router.delete("/:id/videos/:video_id", CamperController.deleteTrainingVideo); // Eliminar un video específico
+router.get("/:campusId/campus", CamperController.getAll);
+router.get("/:id/details", CamperController.getCamperDetails);
 
 /**
- * 5. Rutas relacionadas con proyectos
- * Gestionan los proyectos asociados a un usuario.
+ * 5. Rutas relacionadas con videos
  */
-router.get("/:id/proyects", CamperController.getProjectsByCamperId); // Obtener proyectos por ID de camper
-router.post("/:id/proyects", CamperController.addProjectToCamper); // Agregar un proyecto
-router.delete("/:id/proyects/:proyect_id", CamperController.deleteProjectFromCamper); // Eliminar un proyecto específico
+router.get("/:camperId/videos", CamperController.getVideosByCamperId);
+router.post("/:id/videos", CamperController.addTrainingVideo);
+router.delete("/:id/videos/:video_id", CamperController.deleteTrainingVideo);
 
 /**
- * 6. Rutas relacionadas con el estado y atributos del camper
- * Estas rutas permiten actualizar información específica de un usuario.
+ * 6. Rutas relacionadas con proyectos
  */
-router.patch('/:id/status', CamperController.updateStatus); // Actualizar el estado de un camper
+router.get("/:id/proyects", CamperController.getProjectsByCamperId);
+router.post("/:id/proyects", CamperController.addProjectToCamper);
+router.delete("/:id/proyects/:proyect_id", CamperController.deleteProjectFromCamper);
 
 /**
- * 7. Rutas relacionadas con gestión directa del camper
- * Estas rutas permiten gestionar campers completos (crear, actualizar, eliminar).
+ * 7. Rutas relacionadas con el estado y atributos del camper
  */
-router.post("/", authMiddleware, CamperController.create); // Crear un nuevo camper (protegida)
-router.put("/:id", authMiddleware, CamperController.update); // Actualizar un camper por ID (protegida)
-router.delete("/:id", authMiddleware, CamperController.delete); // Eliminar un camper por ID (protegida)
+router.patch('/:id/status', CamperController.updateStatus);
 
 /**
- * 8. Rutas generales y de fallback
- * Estas rutas pueden causar problemas de solapamiento si no se organizan correctamente.
+ * 8. Rutas relacionadas con gestión directa del camper
  */
-router.get("/:id", CamperController.getById); // Obtener un camper por ID (debe ir al final para evitar solapamiento)
+router.put("/:id", authMiddleware, CamperController.update);
+router.delete("/:id", authMiddleware, CamperController.delete);
+
+/**
+ * 9. Rutas generales y de fallback (SIEMPRE AL FINAL)
+ */
+router.get("/:id", CamperController.getById);
 
 module.exports = router;

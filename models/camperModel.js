@@ -558,57 +558,74 @@ const CamperModel = {
         }
     },
 
-        getCamperDetails: async (camperId) => {
+    getAllCampersDetails: async () => {
         try {
-            // Ejecutar las consultas en paralelo para optimizar rendimiento
-            const [camperData, dreams, projects, videos] = await Promise.all([
-                db.query(`
-                    SELECT 
-                        c.id AS camper_id,
-                        c.title,
-                        c.history,
-                        c.about,
-                        c.main_video_url,
-                        c.full_name,
-                        c.profile_picture,
-                        c.status,
-                        u.birth_date,
-                        u.city_id 
-                    FROM CAMPER c
-                    INNER JOIN USER u ON c.user_id = u.id
-                    WHERE c.id = ?
-                `, [camperId]),
-    
-                db.query("SELECT * FROM DREAMS WHERE camper_id = ?", [camperId]),
-                db.query(`
-                    SELECT p.* 
-                    FROM PROJECT p 
-                    INNER JOIN CAMPER_PROJECT cp ON p.id = cp.project_id 
-                    WHERE cp.camper_id = ?;
-                `, [camperId]),
-                db.query("SELECT * FROM TRAINING_VIDEO WHERE camper_id = ?", [camperId])
-            ]);
-    
-            if (!camperData.data.length) {
-                throw new Error("Camper no encontrado");
+            console.log('Iniciando consulta en el modelo');
+            
+            // Consulta simplificada para pruebas
+            const query = `
+                SELECT 
+                    c.id AS camper_id,
+                    c.full_name,
+                    c.profile_picture,
+                    c.main_video_url,
+                    c.status
+                FROM CAMPER c
+            `;
+
+            console.log('Ejecutando query:', query);
+            
+            const result = await db.query(query);
+            
+            console.log('Resultado base obtenido:', result?.data?.length || 0);
+
+            if (!result?.data) {
+                console.log('No se encontraron resultados');
+                return [];
             }
-    
-            return {
-                camper: camperData.data[0],
-                dreams: dreams.data || [],
-                projects: projects.data || [],
-                videos: videos.data || []
-            };
-    
+
+            // Obtener datos adicionales para cada camper de forma secuencial
+            const campersWithDetails = await Promise.all(
+                result.data.map(async (camper) => {
+                    try {
+                        // Consultas separadas para cada tipo de dato
+                        const [dreams, projects, videos] = await Promise.all([
+                            db.query('SELECT * FROM DREAMS WHERE camper_id = ?', [camper.camper_id]),
+                            db.query(`
+                                SELECT p.* 
+                                FROM PROJECT p 
+                                INNER JOIN CAMPER_PROJECT cp ON p.id = cp.project_id 
+                                WHERE cp.camper_id = ?
+                            `, [camper.camper_id]),
+                            db.query('SELECT * FROM TRAINING_VIDEO WHERE camper_id = ?', [camper.camper_id])
+                        ]);
+
+                        return {
+                            ...camper,
+                            dreams: dreams?.data || [],
+                            projects: projects?.data || [],
+                            videos: videos?.data || []
+                        };
+                    } catch (error) {
+                        console.error(`Error obteniendo detalles para camper ${camper.camper_id}:`, error);
+                        return {
+                            ...camper,
+                            dreams: [],
+                            projects: [],
+                            videos: []
+                        };
+                    }
+                })
+            );
+
+            console.log('Datos completos procesados:', campersWithDetails.length);
+            return campersWithDetails;
+
         } catch (error) {
-            console.error("Error obteniendo detalles del camper:", error);
+            console.error("Error en getAllCampersDetails del modelo:", error);
             throw error;
         }
-    },
-
-
-    
-
+    }
 };
 
 module.exports = CamperModel;
