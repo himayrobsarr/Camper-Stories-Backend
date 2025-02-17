@@ -51,7 +51,7 @@ const cityRoutes = require('./routes/cityRoutes');
 const technologyRoutes = require('./routes/technologyRoutes.js');
 const uploadRoutes = require('./routes/uploadRoutes');
 const passwordResetRoutes = require('./routes/passwordResetRoutes');
-const wompiRoutes = require("./routes/wompiRoutes.js")
+const wompiRoutes = require('./routes/wompiRoutes');
 const adminRoutes = require("./routes/adminRoutes");
 
 // * CONFIG Y ENDPOINTS LANDING IA
@@ -71,7 +71,7 @@ app.use('/cities', cityRoutes);
 app.use('/technology', technologyRoutes); 
 app.use('/upload', uploadRoutes);
 app.use('/password-reset', passwordResetRoutes);
-app.use("/payments", wompiRoutes)
+app.use('/wompi', wompiRoutes);
 app.use("/admin", adminRoutes);
 
 // ? Configuración del rate limiting global

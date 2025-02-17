@@ -1,47 +1,61 @@
 const SponsorModel = require('../models/sponsorModel');
+const jwt = require('jsonwebtoken');
 
 class SponsorController {
     static async create(req, res) {
         try {
-            const {
-                first_name,
-                last_name,
-                email,
-                password,
-                document_type_id,  // Cambiado
-                document_number,
-                city_id,          // Cambiado
-                birth_date
-            } = req.body;
-    
-            if (
-                !first_name || !last_name || !email || !password ||
-                !document_type_id || !document_number || !city_id || !birth_date
-            ) {
+            // Validar campos requeridos
+            const requiredFields = [
+                'first_name',
+                'last_name',
+                'email',
+                'password',
+                'document_type_id',
+                'document_number',
+                'city_id',
+                'birth_date'
+            ];
+
+            for (const field of requiredFields) {
+                if (!req.body[field]) {
+                    return res.status(400).json({
+                        message: `El campo ${field} es requerido`
+                    });
+                }
+            }
+
+            // Validar formato de fecha
+            const birthDate = new Date(req.body.birth_date);
+            if (isNaN(birthDate.getTime())) {
                 return res.status(400).json({
-                    message: 'Todos los campos son obligatorios'
+                    message: 'Formato de fecha inválido. Use YYYY-MM-DD'
                 });
             }
-    
-            const newSponsor = await SponsorModel.createSponsor({
-                first_name,
-                last_name,
-                email,
-                password,
-                document_type_id,  // Cambiado
-                document_number,
-                city_id,          // Cambiado
-                birth_date
-            });
-    
+
+            // Crear sponsor (ahora automáticamente con plan PIONEER)
+            const sponsor = await SponsorModel.createSponsor(req.body);
+
+            // Generar token JWT
+            const token = jwt.sign(
+                {
+                    id: sponsor.id,
+                    email: sponsor.email,
+                    role: 'sponsor'
+                },
+                process.env.JWT_SECRET,
+                { expiresIn: '24h' }
+            );
+
             res.status(201).json({
-                message: 'Sponsor creado exitosamente',
-                data: newSponsor
+                message: 'Sponsor creado exitosamente con plan PIONEER',
+                token,
+                sponsor
             });
+
         } catch (error) {
-            console.error('Error en createSponsor:', error);
-            res.status(500).json({
-                message: 'Error al crear sponsor',
+            console.error('Error en create sponsor:', error);
+            res.status(400).json({
+                message: 'Error al crear el sponsor',
                 error: error.message
             });
         }
@@ -90,19 +104,17 @@ class SponsorController {
     }
 
     static async getById(req, res) {
-        const { id } = req.params; // Obtener el ID del sponsor de los parámetros de la solicitud
+        const { id } = req.params;
 
         try {
-            const sponsor = await SponsorModel.getSponsorById(id); // Llamar al modelo para obtener el sponsor por ID
+            const sponsor = await SponsorModel.getSponsorById(id);
 
-            // Verificar si el sponsor existe y si es un sponsor
-            if (!sponsor || sponsor.role !== 'sponsor') {
+            if (!sponsor) {
                 return res.status(404).json({
-                    message: 'Sponsor no encontrado o no es un sponsor'
+                    message: 'Sponsor no encontrado'
                 });
             }
 
-            // Responder con los datos del sponsor
             res.status(200).json({
                 message: 'Sponsor encontrado exitosamente',
                 data: sponsor
