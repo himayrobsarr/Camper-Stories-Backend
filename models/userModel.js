@@ -47,11 +47,11 @@ class UserModel {
                 const salt = await bcrypt.genSalt(10);
                 const hashedPassword = await bcrypt.hash(userData.password, salt);
 
-                // 6. Crear usuario
+                // 6. Crear usuario con role_id = 0 (camper)
                 const userQuery = `
                     INSERT INTO USER (
                         first_name, last_name, email, password,
-                        role, document_type_id, document_number,
+                        role_id, document_type_id, document_number,
                         city_id, birth_date, created_at
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
                 `;
@@ -61,7 +61,7 @@ class UserModel {
                     userData.last_name,
                     userData.email,
                     hashedPassword,
-                    'camper',
+                    0,  // role_id para camper
                     userData.document_type,
                     userData.document_number,
                     userData.city,
@@ -125,17 +125,44 @@ class UserModel {
     }
 
     static async findByEmail(email) {
+        const query = `
+            SELECT 
+                u.*,
+                c.name as city_name,
+                dt.name as document_type_name
+            FROM USER u
+            LEFT JOIN CITY c ON u.city_id = c.id
+            LEFT JOIN DOCUMENT_TYPE dt ON u.document_type_id = dt.id
+            WHERE u.email = ?
+        `;
+
         try {
-            const query = `
-                SELECT u.*, c.name as city_name, cam.*
-                FROM USER u
-                LEFT JOIN CITY c ON u.city_id = c.id
-                LEFT JOIN CAMPER cam ON u.id = cam.user_id
-                WHERE u.email = ?
-            `;
             const result = await conexion.query(query, [email]);
-            return result.data[0];
+            
+            if (!result.data || result.data.length === 0) {
+                return null;
+            }
+
+            const user = result.data[0];
+            
+            // Asignar rol basado en role_id
+            switch (user.role_id) {
+                case 1:
+                    user.role = 'admin';
+                    break;
+                case 2:
+                    user.role = 'sponsor';
+                    break;
+                case 3:
+                    user.role = 'camper';
+                    break;
+                default:
+                    user.role = 'user';
+            }
+
+            return user;
         } catch (error) {
+            console.error('Error en findByEmail:', error);
             throw error;
         }
     }
