@@ -204,4 +204,28 @@ class SponsorController {
     }
 }
 
+// Agregar middleware de manejo de errores específicos
+const handleSponsorError = (error, res) => {
+    if (error.message.includes('duplicate')) {
+        return res.status(409).json({
+            message: 'El email o documento ya está registrado',
+            error: error.message
+        });
+    }
+    // ... otros casos específicos
+    return res.status(500).json({
+        message: 'Error interno del servidor',
+        error: error.message
+    });
+};
+
+// Estandarizar formato de respuestas
+const successResponse = (res, status, message, data) => {
+    res.status(status).json({
+        success: true,
+        message,
+        data
+    });
+};
+
 module.exports = SponsorController;

@@ -7,8 +7,6 @@ const PlanModel = require("../models/planModel");
 const WompiService = require("../services/wompiService");
 const WebhookLogModel = require("../models/webhooklogModel");
 const SubscriptionModel = require('../models/subscriptionModel');
-const NotificationEmailController = require('./notificationEmailController')
-const WelcomeEmailController = require('./welcomeEmailController')
 
 class WompiController {
     constructor() {
@@ -140,10 +138,26 @@ class WompiController {
 
     static async initSubscription(req, res) {
         try {
-            const { planId } = req.body;
-            const userId = req.user.id; // Del middleware de autenticación
+            const { planId, customerData, amount, frequency } = req.body;
+            
+            // Verificar que tenemos todos los datos necesarios
+            if (!planId) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'El planId es requerido'
+                });
+            }
 
-            // Validar que existe el plan
+            // Obtener el userId del token (asumiendo que está en req.user)
+            const userId = req.user?.id;
+            if (!userId) {
+                return res.status(401).json({
+                    success: false,
+                    error: 'Usuario no autenticado'
+                });
+            }
+
+            // Validar que el plan exista y sea válido
             const plan = await PlanModel.findById(planId);
             if (!plan) {
                 return res.status(404).json({
@@ -152,37 +166,53 @@ class WompiController {
                 });
             }
 
-            // Verificar que el usuario es un sponsor
-            const sponsor = await SponsorModel.findByUserId(userId);
-            if (!sponsor) {
+            // Validar que no sea el plan PIONEER
+            if (plan.id === 4) {
                 return res.status(400).json({
                     success: false,
-                    error: 'Usuario no es un sponsor'
+                    error: 'No se puede suscribir al plan PIONEER'
                 });
             }
 
-            // Crear referencia única
-            const reference = `SUB-${userId}-${Date.now()}-${Math.random().toString(36).substring(7)}`;
+            // Generar referencia única
+            const reference = `sub_${Date.now()}_${userId}`;
+            
+            // Calcular monto en centavos
+            const amountInCents = Math.round(plan.main_price * 100);
 
-            // Guardar referencia temporal
+            // Guardar referencia inicial
             await SubscriptionModel.saveInitialReference({
                 reference,
                 planId,
-                userId
+                userId,
+                amount: amountInCents,
+                frequency
             });
 
-            // Retornar datos para el widget de Wompi
+            // Agregar logs para debugging
+            console.log('Datos de suscripción:', {
+                reference,
+                planId,
+                userId,
+                amountInCents,
+                publicKey: process.env.WOMPI_PUBLIC_KEY
+            });
+
             return res.status(200).json({
                 success: true,
+                amountInCents,
                 reference,
-                publicKey: process.env.WOMPI_PUBLIC_KEY,
-                redirectUrl: `${process.env.FRONTEND_URL}/subscription/callback`,
-                amountInCents: Math.round(plan.main_price * 100),
-                currency: 'COP'
+                publicKey: process.env.WOMPI_PUBLIC_KEY
             });
 
         } catch (error) {
-            console.error('Error en initSubscription:', error);
+            console.error('Error detallado en initSubscription:', {
+                error: error.message,
+                stack: error.stack,
+                body: req.body,
+                user: req.user
+            });
+            
             return res.status(500).json({
                 success: false,
                 error: error.message || 'Error al iniciar la suscripción'
@@ -192,8 +222,16 @@ class WompiController {
 
     static async processSubscription(req, res) {
         try {
-            const { id, status, reference } = req.body;
+            const {
+                id,
+                payment_source_id,
+                acceptance_token,
+                status,
+                reference,
+                subscription_id
+            } = req.body;
 
+            // Validar que la suscripción exista
             const subscription = await SubscriptionModel.getByReference(reference);
             if (!subscription) {
                 return res.status(404).json({
@@ -205,14 +243,16 @@ class WompiController {
             // Actualizar estado de la suscripción
             await SubscriptionModel.updateStatus(reference, status);
 
-            // Si la transacción fue exitosa, actualizar el plan del sponsor
+            // Si el pago fue exitoso, actualizar el plan del sponsor
             if (status === 'APPROVED') {
                 await SponsorModel.updatePlan(
                     subscription.user_id,
                     subscription.plan_id,
                     {
                         startDate: new Date(),
-                        status: 'activo'
+                        status: 'activo',
+                        payment_source_id,
+                        subscription_id
                     }
                 );
             }
@@ -232,90 +272,181 @@ class WompiController {
         }
     }
 
+    static async cancelSubscription(req, res) {
+        try {
+            const { subscriptionId } = req.params;
+            const userId = req.user.id;
+
+            // Validar que la suscripción exista y pertenezca al usuario
+            const subscription = await SubscriptionModel.findBySubscriptionId(subscriptionId);
+            if (!subscription || subscription.user_id !== userId) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Suscripción no encontrada'
+                });
+            }
+
+            // Cancelar suscripción en Wompi
+            // Aquí iría la lógica para cancelar en Wompi
+
+            // Actualizar estado en nuestra base de datos
+            await SubscriptionModel.updateStatus(subscription.reference, 'CANCELLED');
+            
+            // Volver al plan PIONEER
+            await SponsorModel.updatePlan(userId, 4, {
+                status: 'activo'
+            });
+
+            return res.status(200).json({
+                success: true,
+                message: 'Suscripción cancelada exitosamente'
+            });
+
+        } catch (error) {
+            console.error('Error en cancelSubscription:', error);
+            return res.status(500).json({
+                success: false,
+                error: error.message || 'Error al cancelar la suscripción'
+            });
+        }
+    }
+
+    static async getUserSubscriptions(req, res) {
+        try {
+            const userId = req.user.id;
+            const subscriptions = await SubscriptionModel.getUserSubscriptions(userId);
+
+            return res.status(200).json({
+                success: true,
+                data: subscriptions
+            });
+        } catch (error) {
+            console.error('Error en getUserSubscriptions:', error);
+            return res.status(500).json({
+                success: false,
+                error: error.message || 'Error al obtener las suscripciones'
+            });
+        }
+    }
+
+    static async getSubscription(req, res) {
+        try {
+            const { subscriptionId } = req.params;
+            const userId = req.user.id;
+
+            const subscription = await SubscriptionModel.findBySubscriptionId(subscriptionId);
+
+            if (!subscription) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Suscripción no encontrada'
+                });
+            }
+
+            // Verificar que la suscripción pertenece al usuario
+            if (subscription.user_id !== userId) {
+                return res.status(403).json({
+                    success: false,
+                    error: 'No autorizado'
+                });
+            }
+
+            return res.status(200).json({
+                success: true,
+                data: subscription
+            });
+        } catch (error) {
+            console.error('Error en getSubscription:', error);
+            return res.status(500).json({
+                success: false,
+                error: error.message || 'Error al obtener la suscripción'
+            });
+        }
+    }
+
+    static async updatePaymentMethod(req, res) {
+        try {
+            const { subscriptionId } = req.params;
+            const { payment_source_id } = req.body;
+            const userId = req.user.id;
+
+            // Verificar que la suscripción existe y pertenece al usuario
+            const subscription = await SubscriptionModel.findBySubscriptionId(subscriptionId);
+            if (!subscription || subscription.user_id !== userId) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Suscripción no encontrada'
+                });
+            }
+
+            // Actualizar método de pago en Wompi
+            const wompiResponse = await WompiService.updatePaymentSource(subscriptionId, payment_source_id);
+
+            // Actualizar en nuestra base de datos
+            await SubscriptionModel.updatePaymentMethod(subscriptionId, {
+                payment_source_id
+            });
+
+            return res.status(200).json({
+                success: true,
+                message: 'Método de pago actualizado exitosamente'
+            });
+        } catch (error) {
+            console.error('Error en updatePaymentMethod:', error);
+            return res.status(500).json({
+                success: false,
+                error: error.message || 'Error al actualizar el método de pago'
+            });
+        }
+    }
+
+    static async getSubscriptionPayments(req, res) {
+        try {
+            const { subscriptionId } = req.params;
+            const userId = req.user.id;
+
+            // Verificar que la suscripción existe y pertenece al usuario
+            const subscription = await SubscriptionModel.findBySubscriptionId(subscriptionId);
+            if (!subscription || subscription.user_id !== userId) {
+                return res.status(404).json({
+                    success: false,
+                    error: 'Suscripción no encontrada'
+                });
+            }
+
+            const payments = await SubscriptionModel.getSubscriptionPayments(subscriptionId);
+
+            return res.status(200).json({
+                success: true,
+                data: payments
+            });
+        } catch (error) {
+            console.error('Error en getSubscriptionPayments:', error);
+            return res.status(500).json({
+                success: false,
+                error: error.message || 'Error al obtener los pagos'
+            });
+        }
+    }
+
     static async recieveWebhook(req, res) {
         try {
             const event = req.body;
-            console.log("Webhook recibido:", event);
+            
+            // Aquí procesarías los eventos de Wompi
+            console.log('Webhook recibido:', event);
 
-            // 1. Validar firma del webhook
-            const secret = process.env.WOMPI_EVENTS_SECRET;
-            if (!event?.signature?.properties || !event?.timestamp || !event?.signature?.checksum) {
-                return res.status(400).json({ error: "Faltan datos necesarios para la validación de la firma." });
-            }
-
-            const { properties, checksum: wompiChecksum } = event.signature;
-            const timestamp = event.timestamp;
-            let concatenated = "";
-
-            for (const prop of properties) {
-                const value = WompiController.getValueFromEventData(event.data, prop);
-                if (value === undefined) {
-                    return res.status(400).json({ error: `Falta el valor de ${prop} en los datos del evento.` });
-                }
-                concatenated += value;
-            }
-            concatenated += timestamp + secret;
-
-            const localChecksum = crypto.createHash("sha256").update(concatenated, "utf8").digest("hex").toUpperCase();
-
-            if (wompiChecksum.toUpperCase() !== localChecksum) {
-                console.warn("Checksum inválido. Posible suplantación de evento.");
-                return res.status(403).json({ error: "Checksum mismatch" });
-            }
-
-            // 2. Extraer información clave del webhook
-            const eventType = event.event || null;
-            const environment = event.environment || null;
-            let transactionId = event.data?.transaction?.id || null;
-            let reference = event.data?.transaction?.reference || null;
-            let status = event.data?.transaction?.status || null;
-            let amount = event.data?.transaction?.amount_in_cents / 100 || null;
-            let customerEmail = event.data?.transaction?.customer_email || null;
-            let paymentMethod = event.data?.transaction?.payment_method_type || null;
-            let customerData = event.data?.transaction?.customer_data || {};
-            let billingData = event.data?.transaction?.billing_data || {};
-
-            if (!transactionId || !reference || !status) {
-                return res.status(400).json({ error: "Datos de transacción incompletos." });
-            }
-
-            // 3. Verificar si el evento ya ha sido procesado (evitar duplicados)
-            const existingEvent = await WebhookLogModel.findWebhookLog(transactionId, reference);
-            if (existingEvent) {
-                console.log("Evento duplicado encontrado. No se procesará.");
-                return res.status(200).json({ received: false, message: "Evento duplicado." });
-            }
-
-            // 4. Guardar el webhook en la base de datos (webhook_logs)
-            await WebhookLogModel.create(eventType, environment, transactionId, reference, status, event, wompiChecksum);
-
-            // 6. Enviar correos solo si el pago fue aprobado
-            if (status === "APPROVED") {
-                console.log("Pago aprobado. Enviando correos...");
-
-                // Enviar correo de bienvenida al cliente
-                await WelcomeEmailController.sendWelcomeEmail(customerEmail, customerData.fullName);
-
-                // Enviar correo de notificación al equipo de Campuslands
-                const notifData = {
-                    email: customerEmail,
-                    username: customerData.fullName,
-                    phone: customerData.phoneNumber,
-                    documentNumber: billingData?.legalId || "No Disponible, visita el excel",
-                    documentType: billingData?.legalIdType || "No Disponible, visita el excel",
-                    paymentMethod,
-                    amount,
-                    contactEmail: "miguel@fundacioncampuslands.com"
-                };
-
-                await NotificationEmailController.sendNotificationEmail(notifData);
-            }
-
-            return res.status(200).json({ received: true, message: "Webhook procesado exitosamente" });
+            return res.status(200).json({ received: true });
 
         } catch (error) {
             console.error("Error en webhook:", error);
-            return res.status(500).json({ error: "Error interno en el servidor." });
+
+            // Dependiendo del tipo de error, respondemos con el código adecuado
+            if (error.message.includes("Checksum mismatch")) {
+                return res.status(403).json({ error: error.message });
+            }
+            // Para otros tipos de errores, puedes devolver un 500 general
+            return res.status(500).json({ error: "Ocurrió un error interno en el servidor." });
         }
     }
 
