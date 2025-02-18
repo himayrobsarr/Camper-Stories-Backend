@@ -5,6 +5,7 @@ const DonationModel = require("../models/donationModel");
 const SponsorModel = require("../models/sponsorModel");
 const PlanModel = require("../models/planModel");
 const WompiService = require("../services/wompiService");
+const WebhookLogModel = require("../models/webhooklogModel");
 const SubscriptionModel = require('../models/subscriptionModel');
 
 class WompiController {
@@ -15,8 +16,7 @@ class WompiController {
 
     validateEnvironmentVars() {
         const requiredEnvVars = [
-            'WOMPI_INTEGRITY_KEY',
-            'WOMPI_PUBLIC_KEY'
+            'WOMPI_INTEGRITY_KEY'
         ];
 
         requiredEnvVars.forEach(varName => {
@@ -26,8 +26,9 @@ class WompiController {
         });
     }
 
-    generateSignatureHelper(reference, amountInCents, currency) {
-        if (!this.INTEGRITY_KEY) {
+    static generateSignatureHelper(reference, amountInCents, currency) {
+        const integrityKey = process.env.WOMPI_INTEGRITY_KEY;
+        if (!integrityKey) {
             throw new Error("INTEGRITY_KEY no está configurada.");
         }
 
@@ -37,21 +38,21 @@ class WompiController {
         const cleanCurrency = currency.toUpperCase();
 
         // Crear el string a firmar
-        const stringToSign = `${cleanReference}${cleanAmount}${cleanCurrency}${this.INTEGRITY_KEY}`;
+        const stringToSign = `${cleanReference}${cleanAmount}${cleanCurrency}${integrityKey}`;
 
         // Generar el hash SHA-256
         return crypto.createHash("sha256").update(stringToSign, 'utf8').digest("hex");
     }
-                              
-    async generateSignature(req, res) {
+
+    static async generateSignature(req, res) {
         try {
             const { reference, amountInCents, currency } = req.body;
-            
+
             if (!reference || !amountInCents || !currency) {
                 return res.status(400).json({ error: "Faltan datos requeridos" });
             }
 
-            const signature = this.generateSignatureHelper(reference, amountInCents, currency);
+            const signature = WompiController.generateSignatureHelper(reference, amountInCents, currency);
             return res.status(200).json({ signature });
         } catch (error) {
             console.error("Error generando la firma:", error);
@@ -205,7 +206,7 @@ class WompiController {
             // Si la transacción fue exitosa, actualizar el plan del sponsor
             if (status === 'APPROVED') {
                 await SponsorModel.updatePlan(
-                    subscription.user_id, 
+                    subscription.user_id,
                     subscription.plan_id,
                     {
                         startDate: new Date(),
@@ -229,21 +230,164 @@ class WompiController {
         }
     }
 
-    static async handleWebhook(req, res) {
+    static async recieveWebhook(req, res) {
         try {
             const event = req.body;
-            
-            // Aquí procesarías los eventos de Wompi
-            console.log('Webhook recibido:', event);
+            console.log("Webhook recibido:", event);
 
+            // 1. Validar la firma (checksum) del evento
+            const secret = process.env.WOMPI_EVENTS_SECRET; // Secreto para eventos (diferente al INTEGRITY_KEY)
+
+            if (!event?.signature?.properties || !event?.timestamp || !event?.signature?.checksum) {
+                return res.status(400).json({ error: "Faltan datos necesarios para la validación de la firma." });
+            }
+
+            const { properties, checksum: wompiChecksum } = event.signature;
+            const timestamp = event.timestamp;
+
+            // 2. Concatenar los valores de los campos definidos en signature.properties
+            let concatenated = "";
+            for (const prop of properties) {
+                // Extraemos el valor del campo de la propiedad en 'data' (event.data)
+                const value = WompiController.getValueFromEventData(event.data, prop);
+                if (value === undefined) {
+                    return res.status(400).json({ error: `Falta el valor de la propiedad ${prop} en los datos del evento.` });
+                }
+                concatenated += value;
+            }
+
+            // 3. Agregar el timestamp
+            concatenated += timestamp;
+
+            // 4. Agregar tu secreto
+            concatenated += secret;
+
+            // 5. Generar hash SHA256 de la cadena concatenada
+            const localChecksum = crypto
+                .createHash("sha256")
+                .update(concatenated, "utf8")
+                .digest("hex")
+                .toUpperCase(); // Wompi envía el checksum en mayúsculas
+
+            // 6. Comparar la firma generada localmente con la del evento
+            if (wompiChecksum.toUpperCase() !== localChecksum) {
+                console.warn("Checksum inválido. Posible suplantación de evento.");
+                return res.status(403).json({ error: "Checksum mismatch" });
+            }
+
+            // 7. Extraer otros campos importantes del evento (como transaction.id, reference, status)
+            const eventType = event.event || null;
+            const environment = event.environment || null;
+            let transactionId = null;
+            let reference = null;
+            let status = null;
+
+            if (event.data && event.data.transaction) {
+                transactionId = event.data.transaction.id || null;
+                reference = event.data.transaction.reference || null;
+                status = event.data.transaction.status || null;
+            } else {
+                return res.status(400).json({ error: "Datos de transacción incompletos en el evento." });
+            }
+
+            // 8. Verificar si el evento ya ha sido procesado (duplicado)
+            const existingEvent = await WebhookLogModel.findWebhookLog(transactionId, reference);
+
+            if (existingEvent) {
+                console.log("Evento duplicado encontrado. No se procesará.");
+                return res.status(200).json({ received: false, message: "Evento duplicado." });
+            }
+
+            // 9. Guardar el evento en la base de datos (webhook_logs)
+            await WebhookLogModel.create(eventType, environment, transactionId, reference, status, event, wompiChecksum);
+
+            // 10. Responder con 200 para que Wompi no reintente
             return res.status(200).json({ received: true });
+
         } catch (error) {
-            console.error('Error en webhook:', error);
-            return res.status(500).json({
-                success: false,
-                error: error.message
-            });
+            console.error("Error en webhook:", error);
+
+            // Dependiendo del tipo de error, respondemos con el código adecuado
+            if (error.message.includes("Checksum mismatch")) {
+                return res.status(403).json({ error: error.message });
+            }
+            // Para otros tipos de errores, puedes devolver un 500 general
+            return res.status(500).json({ error: "Ocurrió un error interno en el servidor." });
         }
+    }
+
+
+    static getValueFromEventData(data, path) {
+        const parts = path.split(".");
+        let current = data;
+        for (const p of parts) {
+            if (!current || !Object.prototype.hasOwnProperty.call(current, p)) {
+                return ""; // si no existe, retornar vacío
+            }
+            current = current[p];
+        }
+        return current.toString();
+    }
+
+    static async savePaymentInfo(req, res) {
+        const { connection } = await conexion.getConexion();
+        try {
+            const paymentData = req.body;
+
+            if (!paymentData || !paymentData.reference || !paymentData.amountInCents || !paymentData.currency || !paymentData.signature) {
+                return res.status(400).json({ error: "Datos incompletos en la solicitud." });
+            }
+
+            const expectedSignature = WompiController.generateSignatureHelper(paymentData.reference, paymentData.amountInCents, paymentData.currency);
+
+            // Comparar la firma generada con la firma enviada en la solicitud
+            if (paymentData.signature !== expectedSignature) {
+                if (connection) await connection.rollback();
+                return res.status(400).json({ error: "Firma inválida." });
+            }
+
+            await connection.beginTransaction();
+
+            const paymentMethodType = paymentData.paymentMethodType ? paymentData.paymentMethodType.toLowerCase() : 'unknown';
+
+            const payment = await PaymentModel.create({
+                reference: paymentData.reference,
+                sponsor_id: null,
+                user_id: Number(paymentData.customerData?.id) || null,
+                amount: paymentData.amountInCents / 100,
+                currency: paymentData.currency,
+                transaction_id: paymentData.reference,
+                payment_status: paymentData.status?.toLowerCase() || 'pending',
+                payment_method: paymentMethodType,
+            });
+
+            const donation = await DonationModel.create({
+                payment_id: paymentData.reference,
+                message: `Donation via ${paymentMethodType}`,
+                amount: paymentData.amountInCents / 100,
+                camper_id: null,
+                user_id: Number(paymentData.customerData?.id) || null,
+            });
+
+            await connection.commit();
+
+            return res.status(200).json({
+                message: "Datos guardados correctamente.",
+                payment,
+                donation,
+            });
+        } catch (error) {
+            if (connection) {
+                await connection.rollback();
+            }
+            console.error("Error en savePaymentInfo:", error);
+            return res.status(500).json({ error: "Error interno del servidor." });
+        } finally {
+            if (connection) {
+                connection.release();
+            }
+        }
+
     }
 }
 
