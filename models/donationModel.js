@@ -140,9 +140,10 @@ class DonationModel {
           d.id,
           d.amount AS monto,
           DATE_FORMAT(d.created_at, '%Y-%m-%d') AS fecha,
-          c.name AS camper
+          u.first_name AS camper
         FROM DONATION d
         LEFT JOIN CAMPER c ON d.camper_id = c.id
+        LEFT JOIN USER u ON c.user_id = u.id
         WHERE d.user_id = ?
       `;
             const result = await conexion.query(query, [sponsorId]);

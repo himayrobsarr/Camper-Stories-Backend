@@ -193,11 +193,8 @@ class SponsorController {
     // GET /api/sponsors/:sponsorId/donations
     static async getDonations(req, res) {
         try {
-            const { sponsorId } = req.params;
-            console.log(req.params);
-            
+            const { sponsorId } = req.params;  
             const donations = await DonationModel.findDonationsBySponsorId(sponsorId);
-            console.log("sponsors");
             
             return res.json(donations);
         } catch (error) {
