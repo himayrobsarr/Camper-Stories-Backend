@@ -2,27 +2,31 @@ const conexion = require('../helpers/conexion');
 
 class WebhookLogModel {
     // Crear un nuevo log de webhook
-    static async create(webhookData) {
+    static async create(eventType, environment, transactionId, reference, status, payload, checksum) {
         try {
             await conexion.query('START TRANSACTION');
 
             const query = `
                 INSERT INTO WEBHOOK_LOG (
-                    payment_id,
                     event_type,
-                    payload,
-                    received_at,
+                    environment,
                     transaction_id,
-                    status
-                ) VALUES (?, ?, ?, NOW(), ?, ?)
+                    reference,
+                    status,
+                    payload,
+                    checksum,
+                    received_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
             `;
 
             const params = [
-                webhookData.payment_id,
-                webhookData.event_type,
-                webhookData.payload,
-                webhookData.transaction_id,
-                webhookData.status
+                eventType,
+                environment,
+                transactionId,
+                reference,
+                status,
+                JSON.stringify(payload), // Convertir el payload a JSON
+                checksum
             ];
 
             const result = await conexion.query(query, params);
@@ -30,7 +34,13 @@ class WebhookLogModel {
 
             return {
                 id: result.data.insertId,
-                ...webhookData
+                eventType,
+                environment,
+                transactionId,
+                reference,
+                status,
+                payload,
+                checksum
             };
         } catch (error) {
             await conexion.query('ROLLBACK');
@@ -38,40 +48,21 @@ class WebhookLogModel {
         }
     }
 
-    //Obtener log de webhook por ID
-    static async findById(id) {
+    // Obtener log de webhook por transactionId y reference
+    static async findWebhookLog(transactionId, reference) {
         try {
-            const query = `SELECT * FROM WEBHOOK_LOG WHERE id = ?`;
-            const result = await conexion.query(query, [id]);
-            return result.data[0] || null;
+            const query = `
+                SELECT * FROM WEBHOOK_LOG
+                WHERE transaction_id = ? AND reference = ?
+            `;
+            const result = await conexion.query(query, [transactionId, reference]);
+            return result.data[0] || null; // Devuelve el primer registro encontrado o null si no existe
         } catch (error) {
             throw error;
         }
     }
 
-    //Obtener logs de webhook por ID de transacción
-    static async findByTransactionId(transactionId) {
-        try {
-            const query = `SELECT * FROM WEBHOOK_LOG WHERE transaction_id = ?`;
-            const result = await conexion.query(query, [transactionId]);
-            return result.data || null;
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    //Obtener logs de webhook por ID de pago
-    static async findByPaymentId(paymentId) {
-        try {
-            const query = `SELECT * FROM WEBHOOK_LOG WHERE payment_id = ?`;
-            const result = await conexion.query(query, [paymentId]);
-            return result.data || null;
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    //Obtener todos los logs de webhook
+    // Obtener todos los logs de webhook
     static async findAll() {
         try {
             const query = `SELECT * FROM WEBHOOK_LOG`;
@@ -82,7 +73,7 @@ class WebhookLogModel {
         }
     }
 
-    //Actualizar log de webhook
+    // Actualizar log de webhook
     static async update(id, webhookData) {
         try {
             await conexion.query('START TRANSACTION');
@@ -101,7 +92,7 @@ class WebhookLogModel {
         }
     }
 
-    //Eliminar log de webhook
+    // Eliminar log de webhook
     static async delete(id) {
         try {
             await conexion.query('START TRANSACTION');

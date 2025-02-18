@@ -333,23 +333,6 @@ class SponsorModel {
         }
     }
 
-    static async create(sponsorData) {
-        const query = `
-            INSERT INTO SPONSOR (
-                user_id,
-                image_url,
-                plan_id,
-                status
-            ) VALUES (?, ?, ?, 'activo')
-        `;
-
-        return await db.query(query, [
-            sponsorData.user_id,
-            sponsorData.image_url || null,
-            sponsorData.plan_id || null,
-            // Status por defecto es 'activo' según la estructura de la tabla
-        ]);
-    }
 
     static async updateStatus(userId, status) {
         if (!['activo', 'inactivo'].includes(status)) {
@@ -455,6 +438,94 @@ class SponsorModel {
             console.error('Error en getSponsorWithBenefits:', error.message);
             throw new Error(`Error al obtener sponsor con beneficios: ${error.message}`);
         }
+    }
+
+    static async updateSponsor(id, sponsorData) {
+        try {
+            // Iniciar transacción
+            await db.query('START TRANSACTION');
+
+            // Actualizar datos del usuario
+            if (Object.keys(sponsorData).some(key => ['first_name', 'last_name', 'email', 'document_type_id', 'document_number', 'city_id', 'birth_date'].includes(key))) {
+                const userQuery = `
+                    UPDATE USER 
+                    SET 
+                        first_name = COALESCE(?, first_name),
+                        last_name = COALESCE(?, last_name),
+                        email = COALESCE(?, email),
+                        document_type_id = COALESCE(?, document_type_id),
+                        document_number = COALESCE(?, document_number),
+                        city_id = COALESCE(?, city_id),
+                        birth_date = COALESCE(?, birth_date)
+                    WHERE id = (SELECT user_id FROM SPONSOR WHERE id = ?)
+                `;
+
+                await db.query(userQuery, [
+                    sponsorData.first_name,
+                    sponsorData.last_name,
+                    sponsorData.email,
+                    sponsorData.document_type_id,
+                    sponsorData.document_number,
+                    sponsorData.city_id,
+                    sponsorData.birth_date,
+                    id
+                ]);
+            }
+
+            // Actualizar datos específicos del sponsor
+            if (Object.keys(sponsorData).some(key => ['image_url', 'status'].includes(key))) {
+                const sponsorQuery = `
+                    UPDATE SPONSOR 
+                    SET 
+                        image_url = COALESCE(?, image_url),
+                        status = COALESCE(?, status)
+                    WHERE id = ?
+                `;
+
+                await db.query(sponsorQuery, [
+                    sponsorData.image_url,
+                    sponsorData.status,
+                    id
+                ]);
+            }
+
+            // Confirmar transacción
+            await db.query('COMMIT');
+
+            // Obtener los datos actualizados
+            const updatedSponsor = await this.findById(id);
+            return updatedSponsor;
+
+        } catch (error) {
+            // Revertir cambios si hay error
+            await db.query('ROLLBACK');
+            console.error('Error en updateSponsor:', error);
+            throw new Error(`Error al actualizar el sponsor: ${error.message}`);
+        }
+    }
+
+    // Método auxiliar para obtener sponsor por ID
+    static async findById(id) {
+        const query = `
+            SELECT 
+                s.*,
+                u.first_name,
+                u.last_name,
+                u.email,
+                u.document_type_id,
+                u.document_number,
+                u.city_id,
+                u.birth_date,
+                p.name as plan_name,
+                p.main_price
+            FROM SPONSOR s
+            JOIN USER u ON s.user_id = u.id
+            LEFT JOIN PLAN p ON s.plan_id = p.id
+            WHERE s.id = ?
+        `;
+
+        const result = await db.query(query, [id]);
+        return result.data[0];
     }
 }
 

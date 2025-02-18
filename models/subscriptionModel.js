@@ -71,6 +71,58 @@ class SubscriptionModel {
         const result = await db.query(query, [id]);
         return result.data[0];
     }
+
+    static async findBySubscriptionId(subscriptionId) {
+        const query = `
+            SELECT s.*, p.name as plan_name, p.main_price
+            FROM SUBSCRIPTION s
+            JOIN PLAN p ON s.plan_id = p.id
+            WHERE s.subscription_id = ?
+        `;
+        const result = await db.query(query, [subscriptionId]);
+        return result.data[0];
+    }
+
+    static async getUserSubscriptions(userId) {
+        const query = `
+            SELECT 
+                s.*,
+                p.name as plan_name,
+                p.main_price,
+                p.description as plan_description
+            FROM SUBSCRIPTION s
+            JOIN PLAN p ON s.plan_id = p.id
+            WHERE s.user_id = ?
+            ORDER BY s.created_at DESC
+        `;
+        const result = await db.query(query, [userId]);
+        return result.data;
+    }
+
+    static async getSubscriptionPayments(subscriptionId) {
+        const query = `
+            SELECT 
+                p.*,
+                s.reference as subscription_reference
+            FROM PAYMENT p
+            JOIN SUBSCRIPTION s ON p.subscription_id = s.id
+            WHERE s.subscription_id = ?
+            ORDER BY p.payment_date DESC
+        `;
+        const result = await db.query(query, [subscriptionId]);
+        return result.data;
+    }
+
+    static async updatePaymentMethod(subscriptionId, paymentMethodData) {
+        const query = `
+            UPDATE SUBSCRIPTION 
+            SET 
+                payment_source_id = ?,
+                updated_at = NOW()
+            WHERE subscription_id = ?
+        `;
+        return await db.query(query, [paymentMethodData.payment_source_id, subscriptionId]);
+    }
 }
 
 module.exports = SubscriptionModel; 

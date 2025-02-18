@@ -1,75 +1,69 @@
-const axios = require('axios');
-const crypto = require('crypto');
-const SubscriptionModel = require('../models/subscriptionModel');
+export const initializeSubscription = async (planData) => {
+    try {
+        console.log('Datos enviados a init-subscription:', planData); // Debugging
 
-class WompiService {
-    constructor() {
-        this.apiKey = process.env.WOMPI_PRIVATE_KEY;
-        this.baseUrl = process.env.WOMPI_API_URL;
-    }
-
-    static verifyWebhookSignature(req) {
-        const signature = req.headers['x-wompi-signature'];
-        const webhookKey = process.env.WOMPI_WEBHOOK_KEY;
-        
-        const hash = crypto
-            .createHmac('sha256', webhookKey)
-            .update(JSON.stringify(req.body))
-            .digest('hex');
-        
-        return signature === hash;
-    }
-
-    static async handleSubscriptionCreated(data) {
-        try {
-            const { subscription } = data;
-            await SubscriptionModel.updateStatus(subscription.reference, 'active');
-        } catch (error) {
-            console.error('Error handling subscription created:', error);
-            throw error;
+        const token = localStorage.getItem('token');
+        if (!token) {
+            throw new Error('No hay token de autenticación');
         }
-    }
 
-    static async handleSubscriptionUpdated(data) {
-        try {
-            const { subscription } = data;
-            await SubscriptionModel.updateStatus(
-                subscription.reference, 
-                subscription.status.toLowerCase()
-            );
-        } catch (error) {
-            console.error('Error handling subscription updated:', error);
-            throw error;
-        }
-    }
-
-    static async handleSubscriptionCancelled(data) {
-        try {
-            const { subscription } = data;
-            await SubscriptionModel.updateStatus(subscription.reference, 'cancelled');
-        } catch (error) {
-            console.error('Error handling subscription cancelled:', error);
-            throw error;
-        }
-    }
-
-    static async createSubscription(data) {
-        try {
-            const response = await axios.post(
-                `${process.env.WOMPI_API_URL}/subscriptions`,
-                data,
-                {
-                    headers: {
-                        'Authorization': `Bearer ${process.env.WOMPI_PRIVATE_KEY}`
-                    }
+        const response = await axios.post(
+            `${import.meta.env.VITE_API_BASE_URL}wompi/init-subscription`, 
+            {
+                planId: planData.planId,
+                customerData: planData.customerData,
+                amount: planData.amount,
+                frequency: planData.frequency
+            }, 
+            {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
                 }
-            );
-            return response.data;
-        } catch (error) {
-            console.error('Error creating subscription in Wompi:', error);
-            throw error;
-        }
-    }
-}
+            }
+        );
 
-module.exports = WompiService;
+        console.log('Respuesta de init-subscription:', response.data); // Debugging
+
+        if (!response.data.success) {
+            throw new Error(response.data.error || 'Error en la inicialización de la suscripción');
+        }
+
+        return {
+            success: true,
+            amountInCents: response.data.amountInCents,
+            reference: response.data.reference,
+            publicKey: response.data.publicKey
+        };
+    } catch (error) {
+        console.error("Error en initializeSubscription:", {
+            message: error.message,
+            response: error.response?.data,
+            data: error.response?.data
+        });
+        
+        if (error.response?.data?.error) {
+            throw new Error(error.response.data.error);
+        }
+        throw new Error("No se pudo iniciar la suscripción");
+    }
+};
+
+export const processSubscription = async (subscriptionData) => {
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch('/wompi/process-subscription', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(subscriptionData)
+        });
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error procesando suscripción:', error);
+        throw error;
+    }
+};
