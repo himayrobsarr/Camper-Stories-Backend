@@ -7,6 +7,8 @@ const PlanModel = require("../models/planModel");
 const WompiService = require("../services/wompiService");
 const WebhookLogModel = require("../models/webhooklogModel");
 const SubscriptionModel = require('../models/subscriptionModel');
+const NotificationEmailController = require('./notificationEmailController')
+const WelcomeEmailController = require('./welcomeEmailController')
 
 class WompiController {
     constructor() {
@@ -235,84 +237,85 @@ class WompiController {
             const event = req.body;
             console.log("Webhook recibido:", event);
 
-            // 1. Validar la firma (checksum) del evento
-            const secret = process.env.WOMPI_EVENTS_SECRET; // Secreto para eventos (diferente al INTEGRITY_KEY)
-
+            // 1. Validar firma del webhook
+            const secret = process.env.WOMPI_EVENTS_SECRET;
             if (!event?.signature?.properties || !event?.timestamp || !event?.signature?.checksum) {
                 return res.status(400).json({ error: "Faltan datos necesarios para la validación de la firma." });
             }
 
             const { properties, checksum: wompiChecksum } = event.signature;
             const timestamp = event.timestamp;
-
-            // 2. Concatenar los valores de los campos definidos en signature.properties
             let concatenated = "";
+
             for (const prop of properties) {
-                // Extraemos el valor del campo de la propiedad en 'data' (event.data)
                 const value = WompiController.getValueFromEventData(event.data, prop);
                 if (value === undefined) {
-                    return res.status(400).json({ error: `Falta el valor de la propiedad ${prop} en los datos del evento.` });
+                    return res.status(400).json({ error: `Falta el valor de ${prop} en los datos del evento.` });
                 }
                 concatenated += value;
             }
+            concatenated += timestamp + secret;
 
-            // 3. Agregar el timestamp
-            concatenated += timestamp;
+            const localChecksum = crypto.createHash("sha256").update(concatenated, "utf8").digest("hex").toUpperCase();
 
-            // 4. Agregar tu secreto
-            concatenated += secret;
-
-            // 5. Generar hash SHA256 de la cadena concatenada
-            const localChecksum = crypto
-                .createHash("sha256")
-                .update(concatenated, "utf8")
-                .digest("hex")
-                .toUpperCase(); // Wompi envía el checksum en mayúsculas
-
-            // 6. Comparar la firma generada localmente con la del evento
             if (wompiChecksum.toUpperCase() !== localChecksum) {
                 console.warn("Checksum inválido. Posible suplantación de evento.");
                 return res.status(403).json({ error: "Checksum mismatch" });
             }
 
-            // 7. Extraer otros campos importantes del evento (como transaction.id, reference, status)
+            // 2. Extraer información clave del webhook
             const eventType = event.event || null;
             const environment = event.environment || null;
-            let transactionId = null;
-            let reference = null;
-            let status = null;
+            let transactionId = event.data?.transaction?.id || null;
+            let reference = event.data?.transaction?.reference || null;
+            let status = event.data?.transaction?.status || null;
+            let amount = event.data?.transaction?.amount_in_cents / 100 || null;
+            let customerEmail = event.data?.transaction?.customer_email || null;
+            let paymentMethod = event.data?.transaction?.payment_method_type || null;
+            let customerData = event.data?.transaction?.customer_data || {};
+            let billingData = event.data?.transaction?.billing_data || {};
 
-            if (event.data && event.data.transaction) {
-                transactionId = event.data.transaction.id || null;
-                reference = event.data.transaction.reference || null;
-                status = event.data.transaction.status || null;
-            } else {
-                return res.status(400).json({ error: "Datos de transacción incompletos en el evento." });
+            if (!transactionId || !reference || !status) {
+                return res.status(400).json({ error: "Datos de transacción incompletos." });
             }
 
-            // 8. Verificar si el evento ya ha sido procesado (duplicado)
+            // 3. Verificar si el evento ya ha sido procesado (evitar duplicados)
             const existingEvent = await WebhookLogModel.findWebhookLog(transactionId, reference);
-
             if (existingEvent) {
                 console.log("Evento duplicado encontrado. No se procesará.");
                 return res.status(200).json({ received: false, message: "Evento duplicado." });
             }
 
-            // 9. Guardar el evento en la base de datos (webhook_logs)
+            // 4. Guardar el webhook en la base de datos (webhook_logs)
             await WebhookLogModel.create(eventType, environment, transactionId, reference, status, event, wompiChecksum);
 
-            // 10. Responder con 200 para que Wompi no reintente
-            return res.status(200).json({ received: true });
+            // 6. Enviar correos solo si el pago fue aprobado
+            if (status === "APPROVED") {
+                console.log("Pago aprobado. Enviando correos...");
+
+                // Enviar correo de bienvenida al cliente
+                await WelcomeEmailController.sendWelcomeEmail(customerEmail, customerData.fullName);
+
+                // Enviar correo de notificación al equipo de Campuslands
+                const notifData = {
+                    email: customerEmail,
+                    username: customerData.fullName,
+                    phone: customerData.phoneNumber,
+                    documentNumber: billingData?.legalId || "No Disponible, visita el excel",
+                    documentType: billingData?.legalIdType || "No Disponible, visita el excel",
+                    paymentMethod,
+                    amount,
+                    contactEmail: "miguel@fundacioncampuslands.com"
+                };
+
+                await NotificationEmailController.sendNotificationEmail(notifData);
+            }
+
+            return res.status(200).json({ received: true, message: "Webhook procesado exitosamente" });
 
         } catch (error) {
             console.error("Error en webhook:", error);
-
-            // Dependiendo del tipo de error, respondemos con el código adecuado
-            if (error.message.includes("Checksum mismatch")) {
-                return res.status(403).json({ error: error.message });
-            }
-            // Para otros tipos de errores, puedes devolver un 500 general
-            return res.status(500).json({ error: "Ocurrió un error interno en el servidor." });
+            return res.status(500).json({ error: "Error interno en el servidor." });
         }
     }
 
