@@ -6,7 +6,11 @@ const authMiddleware = require("../middlewares/authMiddleware");
 // Rutas para suscripciones
 router.post("/init-subscription", WompiController.initSubscription);
 router.post("/process-subscription", WompiController.processSubscription);
-router.post("/webhook", WompiController.handleWebhook);
+router.post("/recieve-webhook", WompiController.recieveWebhook);
+router.post("/generate-signature", WompiController.generateSignature);
+
+// Ruta para procesar los webhooks de Wompi
+router.post('/save-info', WompiController.savePaymentInfo);
 
 // Nuevas rutas
 router.get("/subscriptions", authMiddleware, WompiController.getUserSubscriptions);
