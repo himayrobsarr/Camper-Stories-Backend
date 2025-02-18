@@ -500,7 +500,7 @@ class WompiController {
                 message: `Donation via ${paymentMethodType}`,
                 amount: paymentData.amountInCents / 100,
                 camper_id: null,
-                user_id: Number(paymentData.customerData?.id) || null,
+                sponsor_id: Number(paymentData.customerData?.id) || null,
             });
 
             await connection.commit();

@@ -12,7 +12,7 @@ class DonationModel {
                     message,
                     amount,
                     camper_id,
-                    user_id,
+                    sponsor_id,
                     created_at
                 ) VALUES (?, ?, ?, ?, ?, NOW())
             `;
@@ -22,7 +22,7 @@ class DonationModel {
                 donationData.message,
                 donationData.amount,
                 donationData.camper_id,
-                donationData.user_id,
+                donationData.sponsor_id,
                 donationData.created_at
             ];
 
@@ -45,17 +45,6 @@ class DonationModel {
             const query = `SELECT * FROM DONATION WHERE id = ?`;
             const result = await conexion.query(query, [id]);
             return result.data[0] || null;
-        } catch (error) {
-            throw error;
-        }
-    }
-
-    //Obtener donaciones por usuario
-    static async findByUserId(userId) {
-        try {
-            const query = `SELECT * FROM DONATION WHERE user_id = ?`;
-            const result = await conexion.query(query, [userId]);
-            return result.data || null;
         } catch (error) {
             throw error;
         }
@@ -144,7 +133,7 @@ class DonationModel {
         FROM DONATION d
         LEFT JOIN CAMPER c ON d.camper_id = c.id
         LEFT JOIN USER u ON c.user_id = u.id
-        WHERE d.user_id = ?
+        WHERE d.sponsor_id = ?
       `;
             const result = await conexion.query(query, [sponsorId]);
             return result.data; // arreglo de donaciones
