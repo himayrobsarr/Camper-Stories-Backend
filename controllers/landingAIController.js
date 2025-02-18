@@ -3,9 +3,11 @@ const landingAIModel = require('../models/landingAIModel');
 const landingAIController = {
     saveRegisteredInfo: async (req, res) => {
         try {
-            const { name, lastname, email, phone, document, payment_reference, payment_date, selected_course } = req.body;
+            const { name, lastname, email, phone, document, payment_reference, selected_course } = req.body;
 
-            if (!name || !lastname || !email || !phone || !document || !payment_reference || !payment_date || !selected_course) {
+            const payment_date = null; // la fecha se crea en null, luego se actualiza
+
+            if (!name || !lastname || !email || !phone || !document || !payment_reference || !selected_course) {
                 return res.status(400).json({ error: "Faltan datos requeridos" });
             }
 

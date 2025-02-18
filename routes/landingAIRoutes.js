@@ -1,7 +1,5 @@
 const express = require("express");
 const landingAIController = require("../controllers/landingAIController");
-const welcomeEmailController = require("../controllers/welcomeEmailController");
-const notificationEmailController = require("../controllers/notificationEmailController");
 const router = express.Router();
 
 //Guardar registros exitosos al curso

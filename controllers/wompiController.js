@@ -7,8 +7,9 @@ const PlanModel = require("../models/planModel");
 const WompiService = require("../services/wompiService");
 const WebhookLogModel = require("../models/webhooklogModel");
 const SubscriptionModel = require('../models/subscriptionModel');
-const NotificationEmailController = require('./notificationEmailController')
-const WelcomeEmailController = require('./welcomeEmailController')
+const landingAIModel = require('../models/landingAIModel');
+const { sendWelcomeEmail, sendNotificationEmail } = require('./emailSendindController');
+
 
 class WompiController {
     constructor() {
@@ -274,6 +275,7 @@ class WompiController {
             let paymentMethod = event.data?.transaction?.payment_method_type || null;
             let customerData = event.data?.transaction?.customer_data || {};
             let billingData = event.data?.transaction?.billing_data || {};
+            let finalizedAt = event.data?.transaction?.finalized_at || null;
 
             if (!transactionId || !reference || !status) {
                 return res.status(400).json({ error: "Datos de transacción incompletos." });
@@ -291,24 +293,29 @@ class WompiController {
 
             // 6. Enviar correos solo si el pago fue aprobado
             if (status === "APPROVED") {
-                console.log("Pago aprobado. Enviando correos...");
+                console.log("Pago aprobado. Enviando correos y guardando informacion...");
+
+                console.log("Pago aprobado. Actualizando estado de inscripción a 'EXITOSO'...");
+                // Actualiza el estado de la inscripción usando la referencia de pago
+                await landingAIModel.updateInscriptionStatus(reference, finalizedAt);
+                console.log("Estado de inscripción actualizado. Enviando correos...");
 
                 // Enviar correo de bienvenida al cliente
-                await WelcomeEmailController.sendWelcomeEmail(customerEmail, customerData.fullName);
+                await sendWelcomeEmail(customerEmail, customerData.full_name);
 
                 // Enviar correo de notificación al equipo de Campuslands
                 const notifData = {
                     email: customerEmail,
-                    username: customerData.fullName,
-                    phone: customerData.phoneNumber,
+                    username: customerData.full_name,
+                    phone: customerData.phone_number,
                     documentNumber: billingData?.legalId || "No Disponible, visita el excel",
-                    documentType: billingData?.legalIdType || "No Disponible, visita el excel",
+                    documentType: billingData?.legalIdType || "",
                     paymentMethod,
                     amount,
                     contactEmail: "miguel@fundacioncampuslands.com"
                 };
 
-                await NotificationEmailController.sendNotificationEmail(notifData);
+                await sendNotificationEmail(notifData);
             }
 
             return res.status(200).json({ received: true, message: "Webhook procesado exitosamente" });
