@@ -14,8 +14,7 @@ class SponsorController {
                 'document_type_id',
                 'document_number',
                 'city_id',
-                'birth_date',
-                'plan_id'
+                'birth_date'
             ];
 
             for (const field of requiredFields) {
@@ -34,8 +33,8 @@ class SponsorController {
                 });
             }
 
-            // Crear sponsor con todas sus relaciones
-            const sponsor = await SponsorModel.createSponsorWithRelations(req.body);
+            // Crear sponsor (ahora automáticamente con plan PIONEER)
+            const sponsor = await SponsorModel.createSponsor(req.body);
 
             // Generar token JWT
             const token = jwt.sign(
@@ -49,7 +48,7 @@ class SponsorController {
             );
 
             res.status(201).json({
-                message: 'Sponsor creado exitosamente',
+                message: 'Sponsor creado exitosamente con plan PIONEER',
                 token,
                 sponsor
             });
@@ -106,19 +105,17 @@ class SponsorController {
     }
 
     static async getById(req, res) {
-        const { id } = req.params; // Obtener el ID del sponsor de los parámetros de la solicitud
+        const { id } = req.params;
 
         try {
-            const sponsor = await SponsorModel.getSponsorById(id); // Llamar al modelo para obtener el sponsor por ID
+            const sponsor = await SponsorModel.getSponsorById(id);
 
-            // Verificar si el sponsor existe y si es un sponsor
-            if (!sponsor || sponsor.role !== 'sponsor') {
+            if (!sponsor) {
                 return res.status(404).json({
-                    message: 'Sponsor no encontrado o no es un sponsor'
+                    message: 'Sponsor no encontrado'
                 });
             }
 
-            // Responder con los datos del sponsor
             res.status(200).json({
                 message: 'Sponsor encontrado exitosamente',
                 data: sponsor

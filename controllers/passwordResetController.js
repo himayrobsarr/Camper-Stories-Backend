@@ -166,6 +166,106 @@ class PasswordResetController {
             res.status(500).json({ message: 'Error en el servidor' });
         }
     }
+
+    static getEmailTransporter() {
+        return nodemailer.createTransport({
+            service: 'Gmail',
+            auth: {
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS,
+            },
+        });
+    }
+
+    static async sendWelcomeEmail(userData) {
+        const transporter = this.getEmailTransporter();
+        const loginLink = `${process.env.FRONTEND_URL}login`;
+
+        await transporter.sendMail({
+            from: process.env.EMAIL_USER,
+            to: userData.email,
+            subject: 'Bienvenido a Campuslands - Credenciales de Acceso',
+            html: `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                </head>
+                <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f4f4;">
+                    <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                        <tr>
+                            <td style="padding: 40px 0; text-align: center; background-color: #000000;">
+                                <img src="https://camper-stories.s3.us-east-2.amazonaws.com/assets/CampusLogo.png" alt="Logo" style="max-width: 300px; height: auto;">
+                            </td>
+                        </tr>
+                    </table>
+                    
+                    <table role="presentation" style="max-width: 600px; margin: 50px auto; background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <tr>
+                            <td style="padding: 40px;">
+                                <h1 style="color: #333333; font-size: 24px; margin-bottom: 20px; text-align: center;">
+                                    ¡Bienvenido a Campuslands!
+                                </h1>
+                                
+                                <p style="color: #666666; font-size: 16px; line-height: 1.5; margin-bottom: 30px;">
+                                    Hola ${userData.first_name},
+                                </p>
+                                
+                                <p style="color: #666666; font-size: 16px; line-height: 1.5; margin-bottom: 30px;">
+                                    Tu cuenta ha sido creada exitosamente. Aquí están tus credenciales de acceso:
+                                </p>
+                                
+                                <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin-bottom: 30px;">
+                                    <p style="margin: 0; color: #666666;">
+                                        <strong>Email:</strong> ${userData.email}<br>
+                                        <strong>Contraseña temporal:</strong> ${userData.document_number}
+                                    </p>
+                                </div>
+                                
+                                <p style="color: #666666; font-size: 16px; line-height: 1.5; margin-bottom: 30px;">
+                                    Por razones de seguridad, te recomendamos cambiar tu contraseña en tu primer inicio de sesión.
+                                </p>
+                                
+                                <table role="presentation" style="width: 100%; margin: 30px 0;">
+                                    <tr>
+                                        <td style="text-align: center;">
+                                            <a href="${loginLink}" 
+                                               style="display: inline-block; padding: 15px 30px; background-color: #007bff; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">
+                                                Iniciar Sesión
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </table>
+                                
+                                <p style="color: #666666; font-size: 14px; line-height: 1.5;">
+                                    Si tienes problemas para hacer clic en el botón, copia y pega el siguiente enlace en tu navegador:
+                                </p>
+                                
+                                <p style="color: #666666; font-size: 14px; line-height: 1.5; word-break: break-all;">
+                                    ${loginLink}
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+                    
+                    <table role="presentation" style="width: 100%; max-width: 600px; margin: 0 auto;">
+                        <tr>
+                            <td style="padding: 40px; text-align: center;">
+                                <p style="color: #999999; font-size: 14px; margin: 0;">
+                                    Este es un correo electrónico automático, por favor no respondas a este mensaje.
+                                </p>
+                                <p style="color: #999999; font-size: 14px; margin: 10px 0 0 0;">
+                                    &copy; ${new Date().getFullYear()} Campuslands. Todos los derechos reservados.
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+                </body>
+                </html>
+            `
+        });
+    }
 }
 
 module.exports = PasswordResetController;
