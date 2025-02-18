@@ -54,6 +54,10 @@ const passwordResetRoutes = require('./routes/passwordResetRoutes');
 const wompiRoutes = require('./routes/wompiRoutes');
 const adminRoutes = require("./routes/adminRoutes");
 
+// * CONFIG Y ENDPOINTS LANDING IA
+
+const landingIaRoutes = require('./routes/landingAIRoutes.js');
+app.use('/landing-ia', landingIaRoutes);
 
 
 // * Configuración de los endpoints principales

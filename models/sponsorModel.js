@@ -22,7 +22,7 @@ class SponsorModel {
                     u.document_number,
                     u.city_id,
                     c.name AS city_name,
-                    u.birth_date,
+                    u.birth_date, 
                     p.main_price as plan_price
                 FROM SPONSOR s
                 INNER JOIN USER u ON s.user_id = u.id
