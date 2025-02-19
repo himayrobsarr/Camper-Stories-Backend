@@ -7,7 +7,9 @@ router.post("/register", landingAIController.saveRegisteredInfo);
 
 // Nuevas rutas para obtener registros
 router.get("/registros", landingAIController.getAllRegistered);
+router.get("/registros/confirmed", landingAIController.getConfirmedCount);
 router.get("/registros/:id", landingAIController.getRegisteredById);
+
  
 
 module.exports = router;

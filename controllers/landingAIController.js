@@ -79,7 +79,25 @@ const landingAIController = {
                 error: "Error interno del servidor"
             });
         }
-    }
+    },
+
+    getConfirmedCount: async (req, res) => {
+        try {
+            const total = await landingAIModel.getConfirmedCount();
+
+            return res.status(200).json({
+                success: true,
+                message: "Total de Registros Exitosos obtenidos exitosamente",
+                data: total
+            });
+        } catch (error) {
+            console.error("Error obteniendo los registros:", error);
+            return res.status(500).json({
+                success: false,
+                error: "Error interno del servidor"
+            });
+        }
+    },
 };
 
 module.exports = landingAIController;

@@ -37,7 +37,8 @@ const landingAIModel = {
                     payment_reference,
                     payment_date,
                     selected_course,
-                    created_at
+                    created_at,
+                    status
                 FROM INSCRIPCIONES_IA
                 ORDER BY created_at DESC
             `;
@@ -88,26 +89,47 @@ const landingAIModel = {
 
     updateInscriptionStatus: async (payment_reference, payment_date) => {
         try {
-          const formattedDate = new Date(payment_date)
-            .toISOString()          
-            .slice(0, 19)
-            .replace('T', ' ');
-      
-          const query = `
+            const formattedDate = new Date(payment_date)
+                .toISOString()
+                .slice(0, 19)
+                .replace('T', ' ');
+
+            const query = `
             UPDATE INSCRIPCIONES_IA
             SET status = 'EXITOSO', payment_date = ?
             WHERE payment_reference = ?
           `;
-          const { status, data } = await db.query(query, [formattedDate, payment_reference]);
-      
-          if (status === 200) {
-            return data;
-          } else {
-            throw new Error("Error al actualizar el estado de la inscripción");
-          }
+            const { status, data } = await db.query(query, [formattedDate, payment_reference]);
+
+            if (status === 200) {
+                return data;
+            } else {
+                throw new Error("Error al actualizar el estado de la inscripción");
+            }
         } catch (error) {
-          console.error("Error al actualizar la inscripción:", error.message);
-          throw error;
+            console.error("Error al actualizar la inscripción:", error.message);
+            throw error;
+        }
+    },
+
+    getConfirmedCount: async () => {
+        try {
+            const query = `
+                SELECT COUNT(*) AS total
+                FROM INSCRIPCIONES_IA
+                WHERE STATUS = 'EXITOSO';
+            `;
+
+            const { status, data } = await db.query(query);
+
+            if (status === 200) {
+                return data[0] || null;
+            } else {
+                throw new Error("Error al obtener el registro de la base de datos");
+            }
+        } catch (error) {
+            console.error("Error al consultar la base de datos:", error.message);
+            throw error;
         }
     }
 };
