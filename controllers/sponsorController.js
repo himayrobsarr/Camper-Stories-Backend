@@ -202,6 +202,85 @@ class SponsorController {
             return res.status(500).json({ error: 'Error obteniendo donaciones del sponsor' });
         }
     }
+
+    static async createPendingSponsor(req, res) {
+        try {
+            const requiredFields = [
+                'first_name',
+                'last_name',
+                'document_number'
+            ];
+    
+            for (const field of requiredFields) {
+                if (!req.body[field]) {
+                    return res.status(400).json({
+                        message: `El campo ${field} es requerido`
+                    });
+                }
+            }
+    
+            const pendingSponsor = await SponsorModel.finalizeDonationAndGeneratePassword({
+                first_name: req.body.first_name,
+                last_name: req.body.last_name,
+                document_number: req.body.document_number
+            });
+    
+            res.status(201).json({
+                message: 'Sponsor pendiente creado exitosamente',
+                data: pendingSponsor
+            });
+    
+        } catch (error) {
+            console.error('Error en createPendingSponsor:', error);
+            res.status(400).json({
+                message: 'Error al crear el sponsor pendiente',
+                error: error.message
+            });
+        }
+    }
+    
+    static async completeSponsorRegistration(req, res) {
+        try {
+            const { userId } = req.params;
+            
+            const requiredFields = [
+                'email',
+                'password',
+                'document_type_id',
+                'city_id',
+                'birth_date'
+            ];
+    
+            for (const field of requiredFields) {
+                if (!req.body[field]) {
+                    return res.status(400).json({
+                        message: `El campo ${field} es requerido`
+                    });
+                }
+            }
+    
+            const birthDate = new Date(req.body.birth_date);
+            if (isNaN(birthDate.getTime())) {
+                return res.status(400).json({
+                    message: 'Formato de fecha inválido. Use YYYY-MM-DD'
+                });
+            }
+    
+            const result = await SponsorModel.completeSponsorRegistration(userId, req.body);
+    
+            res.status(200).json({
+                message: 'Registro de sponsor completado exitosamente',
+                data: result
+            });
+    
+        } catch (error) {
+            console.error('Error en completeSponsorRegistration:', error);
+            res.status(400).json({
+                message: 'Error al completar el registro del sponsor',
+                error: error.message
+            });
+        }
+    }
 }
 
 // Agregar middleware de manejo de errores específicos
@@ -219,7 +298,7 @@ const handleSponsorError = (error, res) => {
     });
 };
 
-// Estandarizar formato de respuestas
+// Corregir la función successResponse que estaba mal ubicada y causaba un error de sintaxis
 const successResponse = (res, status, message, data) => {
     res.status(status).json({
         success: true,

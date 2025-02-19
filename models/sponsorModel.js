@@ -212,33 +212,126 @@ class SponsorModel {
         }
     }
 
-    static async finalizeDonationAndGeneratePassword(sponsorData) {
+    static async finalizeDonationAndGeneratePassword(basicSponsorData) {
         try {
-            // Usar el número de documento como contraseña
-            const standardPassword = sponsorData.document_number; // Contraseña por defecto
-            const salt = await bcrypt.genSalt(10);
-            const hashedPassword = await bcrypt.hash(standardPassword, salt);
+            await db.query('START TRANSACTION');
 
-            // Crear el sponsor con la contraseña generada
-            const query = `INSERT INTO USER (first_name, last_name, email, password, document_type, document_number, city, birth_date) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`;
-            const params = [
-                sponsorData.first_name,
-                sponsorData.last_name,
-                sponsorData.email,
-                hashedPassword, // Usar la contraseña hasheada
-                sponsorData.document_type,
-                sponsorData.document_number,
-                sponsorData.city,
-                sponsorData.birth_date
+            // Generar un email temporal basado en el documento
+            const temporalEmail = `pending_${basicSponsorData.document_number}@pending.com`;
+            
+            // Generar una contraseña temporal que no podrá ser utilizada
+            const temporalPassword = await bcrypt.hash(Date.now().toString(), 10);
+
+            // Crear el usuario con datos mínimos y estado pendiente
+            const userQuery = `
+                INSERT INTO USER (
+                    first_name,
+                    last_name,
+                    document_number,
+                    email,
+                    password,
+                    role_id,
+                    status
+                ) VALUES (?, ?, ?, ?, ?, 2, 'pending')
+            `;
+
+            const userParams = [
+                basicSponsorData.first_name,
+                basicSponsorData.last_name,
+                basicSponsorData.document_number,
+                temporalEmail,
+                temporalPassword
             ];
-            const result = await db.query(query, params);
+
+            const userResult = await db.query(userQuery, userParams);
+            const userId = userResult.data.insertId;
+
+            // Crear el registro en SPONSOR con estado pendiente
+            const sponsorQuery = `
+                INSERT INTO SPONSOR (
+                    user_id,
+                    plan_id,
+                    status
+                ) VALUES (?, 4, 'pending')
+            `;
+
+            await db.query(sponsorQuery, [userId]);
+            await db.query('COMMIT');
+
             return {
-                id: result.insertId,
-                ...sponsorData,
-                password: undefined // No devolver la contraseña
+                id: userId,
+                document_number: basicSponsorData.document_number,
+                first_name: basicSponsorData.first_name,
+                last_name: basicSponsorData.last_name,
+                status: 'pending'
             };
+
         } catch (error) {
+            await db.query('ROLLBACK');
             console.error('Error en finalizeDonationAndGeneratePassword:', error);
+            throw error;
+        }
+    }
+
+    // Método complementario para actualizar el sponsor cuando complete su registro
+    static async completeSponsorRegistration(userId, completeData) {
+        try {
+            await db.query('START TRANSACTION');
+
+            // Hashear la nueva contraseña
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash(completeData.password, salt);
+
+            // Actualizar la información del usuario
+            const updateUserQuery = `
+                UPDATE USER SET
+                    email = ?,
+                    password = ?,
+                    document_type_id = ?,
+                    city_id = ?,
+                    birth_date = ?,
+                    status = 'active'
+                WHERE id = ?
+            `;
+
+            await db.query(updateUserQuery, [
+                completeData.email,
+                hashedPassword,
+                completeData.document_type_id,
+                completeData.city_id,
+                completeData.birth_date,
+                userId
+            ]);
+
+            // Actualizar el estado del sponsor
+            const updateSponsorQuery = `
+                UPDATE SPONSOR SET
+                    status = 'active'
+                WHERE user_id = ?
+            `;
+
+            await db.query(updateSponsorQuery, [userId]);
+            await db.query('COMMIT');
+
+            // Enviar email de bienvenida
+            try {
+                await PasswordResetController.sendWelcomeEmail({
+                    email: completeData.email,
+                    first_name: completeData.first_name,
+                    document_number: completeData.document_number
+                });
+            } catch (emailError) {
+                console.error('Error al enviar email de bienvenida:', emailError);
+            }
+
+            return {
+                message: 'Registro completado exitosamente',
+                status: 'active'
+            };
+
+        } catch (error) {
+            await db.query('ROLLBACK');
+            console.error('Error en completeSponsorRegistration:', error);
             throw error;
         }
     }
@@ -290,15 +383,13 @@ class SponsorModel {
                 const sponsorQuery = `
                     INSERT INTO SPONSOR (
                         user_id,
-                        plan_id,
-                        status
-                    ) VALUES (?, ?, ?)
+                        plan_id
+                    ) VALUES (?, ?)
                 `;
 
                 const sponsorParams = [
                     userId,
-                    sponsorData.plan_id,
-                    'activo'  // cambiado a 'activo' ya que el pago está aprobado
+                    sponsorData.plan_id
                 ];
 
                 await db.query(sponsorQuery, sponsorParams);
@@ -323,8 +414,7 @@ class SponsorModel {
                     id: userId,
                     ...sponsorData,
                     password: undefined,
-                    role_id: 2,
-                    status: 'activo'
+                    role_id: 2
                 };
 
             } catch (error) {
@@ -335,21 +425,6 @@ class SponsorModel {
             console.error('Error en createSponsorWithRelations:', error);
             throw error;
         }
-    }
-
-
-    static async updateStatus(userId, status) {
-        if (!['activo', 'inactivo'].includes(status)) {
-            throw new Error('Estado no válido');
-        }
-
-        const query = `
-            UPDATE SPONSOR 
-            SET status = ?
-            WHERE user_id = ?
-        `;
-
-        return await db.query(query, [status, userId]);
     }
 
     static async updatePlan(userId, planId) {
@@ -391,7 +466,6 @@ class SponsorModel {
             FROM SPONSOR s
             JOIN USER u ON s.user_id = u.id
             LEFT JOIN PLAN p ON s.plan_id = p.id
-            WHERE s.status = 'activo'
         `;
 
         const result = await db.query(query);
@@ -477,18 +551,15 @@ class SponsorModel {
             }
 
             // Actualizar datos específicos del sponsor
-            if (Object.keys(sponsorData).some(key => ['image_url', 'status'].includes(key))) {
+            if (sponsorData.image_url) {
                 const sponsorQuery = `
                     UPDATE SPONSOR 
-                    SET 
-                        image_url = COALESCE(?, image_url),
-                        status = COALESCE(?, status)
+                    SET image_url = COALESCE(?, image_url)
                     WHERE id = ?
                 `;
 
                 await db.query(sponsorQuery, [
                     sponsorData.image_url,
-                    sponsorData.status,
                     id
                 ]);
             }
