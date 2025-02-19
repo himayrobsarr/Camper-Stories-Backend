@@ -49,6 +49,10 @@ class SponsorModel {
 
     static async createSponsor(sponsorData) {
         try {
+            // Hashear la contraseña antes de guardarla
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash(sponsorData.password, salt);
+
             const query = `
                 INSERT INTO USER (
                     first_name, last_name, email, password,
@@ -61,7 +65,7 @@ class SponsorModel {
                 sponsorData.first_name,
                 sponsorData.last_name,
                 sponsorData.email,
-                sponsorData.password,
+                hashedPassword, // Usar la contraseña hasheada en lugar de la contraseña en texto plano
                 sponsorData.document_type_id,
                 sponsorData.document_number,
                 sponsorData.city_id,
