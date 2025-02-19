@@ -491,7 +491,7 @@ class WompiController {
             await WebhookLogModel.create(eventType, environment, transactionId, reference, status, event, wompiChecksum);
 
             // 6. Enviar correos solo si el pago fue aprobado
-            if (status === "APPROVED") {
+            if (status === "APPROVED" && reference.startsWith("ia_")) {
                 console.log("Pago aprobado. Enviando correos y guardando informacion...");
 
                 console.log("Pago aprobado. Actualizando estado de inscripción a 'EXITOSO'...");
