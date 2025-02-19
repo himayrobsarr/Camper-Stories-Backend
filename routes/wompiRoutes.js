@@ -2,12 +2,14 @@ const express = require("express");
 const router = express.Router();
 const WompiController = require("../controllers/wompiController");
 const authMiddleware = require("../middlewares/authMiddleware");
+const validateSubscriptionData = require("../middlewares/validateSubscriptionData");
 
 // Rutas para suscripciones
-router.post("/init-subscription", WompiController.initSubscription);
-router.post("/process-subscription", WompiController.processSubscription);
-router.post("/recieve-webhook", WompiController.recieveWebhook);
-router.post("/generate-signature", WompiController.generateSignature);
+router.post("/init-subscription",authMiddleware,validateSubscriptionData,WompiController.initSubscription); 
+router.post("/process-subscription", authMiddleware,WompiController.processSubscription);
+router.post("/receive-webhook", WompiController.receiveWebhook);
+router.post("/generate-signature", authMiddleware, WompiController.generateSignature);
+
 
 // Ruta para procesar los webhooks de Wompi
 router.post('/save-info', WompiController.savePaymentInfo);

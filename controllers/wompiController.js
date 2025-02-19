@@ -432,7 +432,7 @@ class WompiController {
         }
     }
 
-    static async recieveWebhook(req, res) {
+    static async receiveWebhook(req, res) {
         try {
             const event = req.body;
             console.log("Webhook recibido:", event);
