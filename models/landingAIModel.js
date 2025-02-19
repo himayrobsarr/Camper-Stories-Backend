@@ -1,16 +1,16 @@
 const db = require("../helpers/conexion");
 
 const landingAIModel = {
-    saveRegisteredInfo: async ({ name, lastname, email, phone, document, payment_reference, payment_date, selected_course }) => {
+    saveRegisteredInfo: async ({ name, lastname, email, phone, document, payment_reference, payment_date, selected_course, numSeats }) => {
         try {
 
             const formattedDate = new Date(payment_date).toISOString().slice(0, 19).replace('T', ' ');
 
             const query = `
-          INSERT INTO INSCRIPCIONES_IA (name, lastname, email, phone, document, payment_reference, payment_date, selected_course)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          INSERT INTO INSCRIPCIONES_IA (name, lastname, email, phone, document, payment_reference, payment_date, selected_course, num_seats)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `;
-            const values = [name, lastname, email, phone, document, payment_reference, formattedDate, selected_course];
+            const values = [name, lastname, email, phone, document, payment_reference, formattedDate, selected_course, numSeats];
 
             const { status, data } = await db.query(query, values);
             if (status === 200) {
@@ -38,7 +38,8 @@ const landingAIModel = {
                     payment_date,
                     selected_course,
                     created_at,
-                    status
+                    status,
+                    num_seats
                 FROM INSCRIPCIONES_IA
                 ORDER BY created_at DESC
             `;
@@ -69,7 +70,9 @@ const landingAIModel = {
                     payment_reference,
                     payment_date,
                     selected_course,
-                    created_at
+                    created_at,
+                    status,
+                    num_seats
                 FROM INSCRIPCIONES_IA
                 WHERE id = ?
             `;

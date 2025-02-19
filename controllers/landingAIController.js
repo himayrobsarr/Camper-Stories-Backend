@@ -3,7 +3,7 @@ const landingAIModel = require('../models/landingAIModel');
 const landingAIController = {
     saveRegisteredInfo: async (req, res) => {
         try {
-            const { name, lastname, email, phone, document, payment_reference, selected_course } = req.body;
+            const { name, lastname, email, phone, document, payment_reference, selected_course, numSeats } = req.body;
 
             const payment_date = null; // la fecha se crea en null, luego se actualiza
 
@@ -19,7 +19,8 @@ const landingAIController = {
                 document,
                 payment_reference,
                 payment_date,
-                selected_course
+                selected_course,
+                numSeats
             });
 
             return res.status(200).json({ message: "Registro guardadito exitosamente" });
