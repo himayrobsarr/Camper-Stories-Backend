@@ -521,7 +521,13 @@ class WompiController {
 
         } catch (error) {
             console.error("Error en webhook:", error);
-            return res.status(500).json({ error: "Error interno en el servidor." });
+
+            // Dependiendo del tipo de error, respondemos con el código adecuado
+            if (error.message.includes("Checksum mismatch")) {
+                return res.status(403).json({ error: error.message });
+            }
+            // Para otros tipos de errores, puedes devolver un 500 general
+            return res.status(500).json({ error: "Ocurrió un error interno en el servidor." });
         }
     }
 
@@ -575,7 +581,7 @@ class WompiController {
                 message: `Donation via ${paymentMethodType}`,
                 amount: paymentData.amountInCents / 100,
                 camper_id: null,
-                user_id: Number(paymentData.customerData?.id) || null,
+                sponsor_id: Number(paymentData.customerData?.id) || null,
             });
 
             await connection.commit();

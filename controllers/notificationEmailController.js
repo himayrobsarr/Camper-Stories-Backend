@@ -2,7 +2,7 @@ const nodemailer = require('nodemailer');
 
 class NotificationEmailController {
     static async sendNotificationEmail(req, res) {
-        const { email, username, phone, documentNumber, documentType, paymentMethod, amount, contactEmail } = req.body;
+        const { email, username, phone, documentNumber, documentType, paymentMethod, contactEmail } = req.body;
 
         try {
 
@@ -59,7 +59,7 @@ class NotificationEmailController {
                                         <li>📛 <b>Nombre del participante:</b> ${username}</li>
                                         <li>📄 <b>Numero de documento:</b> ${documentType}: ${documentNumber}</li>
                                         <li>📚 <b>Curso inscrito:</b> ${courseName}</li>}
-                                        <li>💳 <b>Método de pago:</b> ${paymentMethod} - <b>Valor:</b> ${amount} </li>
+                                        <li>💳 <b>Método de pago:</b> ${paymentMethod}</li>
                                     </ul>
 
                                     <h2 style="color: #007bff; font-size: 18px; text-align: center;">Acción requerida:</h2>
